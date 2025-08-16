@@ -1,0 +1,68 @@
+/* UserAvatar.css */
+.user-avatar-container {
+  position: relative;
+  display: inline-block;
+}
+
+.user-avatar-clickable {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.user-avatar-clickable:hover {
+  transform: scale(1.05);
+}
+
+.user-avatar-clickable:active {
+  transform: scale(0.95);
+}
+
+.user-avatar-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.user-avatar-image {
+  border: 2px solid #F5A623;
+  object-fit: cover;
+  display: block;
+}
+
+.user-avatar-default {
+  background-color: #D6D8DB;
+  border: 2px solid #F5A623;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+
+.user-avatar-default-inner {
+  background-color: #EAECEF;
+  width: 80%;
+  height: 80%;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.user-avatar-online-indicator {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid #FFFFFF;
+  box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+  .user-avatar-clickable:hover {
+    transform: none;
+  }
+}
