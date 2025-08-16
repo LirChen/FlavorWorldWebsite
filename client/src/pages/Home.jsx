@@ -23,14 +23,6 @@ function Home() {
             <div className="logo-icon">🍲</div>
             <h1 className="logo-title">FlavorWorld</h1>
           </div>
-          
-          <nav className="nav-menu">
-            <a href="/recipes" className="nav-link">Recipes</a>
-            <a href="/groups" className="nav-link">Groups</a>
-            <a href="/chat" className="nav-link">Chat</a>
-            <a href="/profile" className="nav-link">Profile</a>
-          </nav>
-
           <div className="user-section">
             {currentUser ? (
               <div className="user-info">
@@ -57,26 +49,6 @@ function Home() {
             Join thousands of food lovers sharing recipes, creating communities, 
             and discovering amazing flavors from around the world.
           </p>
-          
-          <div className="hero-buttons">
-            <a href="/recipes" className="cta-primary">Explore Recipes</a>
-            <a href="/groups" className="cta-secondary">Join Groups</a>
-          </div>
-
-          <div className="hero-stats">
-            <div className="stat">
-              <span className="stat-number">10K+</span>
-              <span className="stat-label">Recipes</span>
-            </div>
-            <div className="stat">
-              <span className="stat-number">5K+</span>
-              <span className="stat-label">Members</span>
-            </div>
-            <div className="stat">
-              <span className="stat-number">500+</span>
-              <span className="stat-label">Groups</span>
-            </div>
-          </div>
         </div>
       </section>
 

@@ -1,290 +1,268 @@
-/* LoginScreen.css */
+/* ==== Root variables ==== */
 
-/* Root variables for FlavorWorld colors */
 :root {
-  --primary: #F5A623;
-  --secondary: #4ECDC4;
-  --accent: #1F3A93;
-  --background: #FFF8F0;
-  --white: #FFFFFF;
-  --text: #2C3E50;
-  --text-light: #7F8C8D;
-  --border: #E8E8E8;
-  --success: #27AE60;
-  --danger: #E74C3C;
-  --header-h: 0px;
+  --header-h: 80px;
+  --primary: #e67e22;
+  --primary-hover: #d35400;
+  --secondary: #74b9ff;
+  --accent: #2c3e50;
+  --background: #f5f3f0;
+  --background-gradient: linear-gradient(135deg, #f5f3f0 0%, #e8e5e1 100%);
+  --white: #ffffff;
+  --text: #2c3e50;
+  --text-light: #7f8c8d;
+  --border: #e8e8e8;
+  --success: #27ae60;
+  --danger: #e74c3c;
+  --shadow-light: 0 10px 40px rgba(0, 0, 0, 0.08);
+  --shadow-hover: 0 20px 50px rgba(0, 0, 0, 0.12);
 }
 
-/* העתקה מדויקת מהפרויקט השני */
-.login-screen {
+/* ==== Base ==== */
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  display: flex;              /* הופך את body ל-flexbox */
+  justify-content: center;    /* מרכז אופקית */
+  align-items: center;        /* מרכז אנכית */
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
+
+/* ==== Main screen – centered ==== */
+.login-screen{
   min-height: calc(100svh - var(--header-h, 0px));
-  background-color: var(--background);
-  display: flex;
+  display: grid;
   justify-content: center;
-  align-items: center;
   padding-inline: clamp(16px, 4vw, 32px);
   padding-block: clamp(16px, 6vh, 40px);
-  font-family: 'Inter', sans-serif;
-
+  align-items: center;
+  place-items: center;   /* אופקי + אנכי */
   padding-left: max(env(safe-area-inset-left), clamp(16px, 4vw, 32px));
   padding-right: max(env(safe-area-inset-right), clamp(16px, 4vw, 32px));
 }
 
-/* העתקה מדויקת מ-register-card */
-.container {
-  background: var(--white);
-  border: 1px solid var(--border);
-  padding: clamp(24px, 4vw, 40px);
-  border-radius: 20px;
-  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.12);
-
-  width: min(100%, clamp(320px, 88vw, 420px));
-  text-align: center;
+.login-screen::before {
+  content: '';
+  position: absolute; inset: 0;
+  background-image:
+    radial-gradient(circle at 20% 30%, rgba(230,126,34,.05) 0%, transparent 50%),
+    radial-gradient(circle at 80% 70%, rgba(116,185,255,.05) 0%, transparent 50%);
+  pointer-events: none;
 }
 
-/* Header section */
+/* ==== Card container (center box) ==== */
+.login-screen .container{
+  width: 100%;
+  max-width: 560px;   /* שליטה על רוחב נוח */
+  margin: 0 auto;     /* מרכז אופקית */
+  text-align: center; /* מרכז תוכן */
+}
+
+.login-screen .container:hover {
+  box-shadow: var(--shadow-hover);
+  transform: translateY(-2px);
+}
+
+/* ==== Header (logo/title) ==== */
 .header {
-  margin-bottom: clamp(18px, 3vh, 30px);
-}
-
-.logo-container {
-  margin-bottom: clamp(24px, 4vh, 36px);
-}
-
-.logo-background {
-  width: 100px;
-  height: 100px;
-  background-color: var(--white);
-  border-radius: 25px;
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   align-items: center;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  border: 3px solid var(--primary);
-  margin: 0 auto;
+  justify-content: center;
+  margin-bottom: clamp(1.5rem, 3vh, 2rem);
 }
 
-.logo-text {
-  font-size: 40px;
+.logo-container { margin-bottom: clamp(1.5rem, 4vh, 2rem); }
+.logo-background {
+  width: clamp(90px, 8vw, 110px);
+  height: clamp(90px, 8vw, 110px);
+  background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+  border-radius: clamp(22px, 3vw, 28px);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 8px 25px rgba(230,126,34,.3);
+  border: 3px solid var(--white);
+  transition: transform .3s ease, box-shadow .3s ease;
 }
+.logo-background:hover { transform: scale(1.05); box-shadow: 0 12px 35px rgba(230,126,34,.4); }
+.logo-text { font-size: clamp(40px, 5vw, 50px); filter: brightness(0) invert(1); }
 
 .title {
-  color: var(--accent);
-  margin-bottom: clamp(18px, 3vh, 30px);
-  font-size: clamp(1.4rem, 2.8vw, 2rem);
+  font-size: clamp(1.8rem, 3.5vw, 2.2rem);
   font-weight: 800;
+  background: linear-gradient(135deg, var(--accent), #34495e);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  margin: 0 0 .5rem 0;
 }
-
 .title-highlight {
-  color: var(--secondary);
+  background: linear-gradient(135deg, var(--secondary), #0984e3);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
 }
-
 .subtitle {
-  font-size: 15px;
+  font-size: clamp(1rem, 2.2vw, 1.1rem);
   font-weight: 500;
   color: var(--text-light);
-  text-align: center;
   margin: 0;
+  line-height: 1.5;
 }
 
-/* Form - העתקה מדויקת מ-register-form */
+/* ==== Form ==== */
 .form {
   width: 100%;
-  display: grid;
-  gap: clamp(12px, 2.2vh, 20px); 
+  display: flex;
+  flex-direction: column;  /* בטור */
+  align-items: stretch;    /* שדות על כל הרוחב */
+  gap: clamp(1rem, 2.5vh, 1.5rem);
 }
-
-.input-group {
-  margin: 0;            
-  text-align: left;
-}
-
+.input-group { margin: 0; }
 .input-label {
   display: block;
-  color: var(--text);
+  font-size: clamp(1rem, 2.5vw, 1.1rem);
   font-weight: 600;
-  margin-bottom: 8px;
-  font-size: 17px;
+  color: var(--text);
+  margin-bottom: .6rem;
+  text-align: start;        /* תוויות מיושרות לשמאל/ימין הטקסט */
 }
-
 .input-control {
   width: 100%;
-  padding: clamp(12px, 2.2vh, 15px);
+  padding: clamp(.9rem, 2.5vh, 1.1rem);
   background-color: var(--white);
   border: 2px solid var(--border);
-  border-radius: 12px;
-  font-size: clamp(14px, 2.2vw, 15px);
+  border-radius: 16px;
+  font-size: clamp(.95rem, 2.2vw, 1rem);
+  font-weight: 500;
   color: var(--text);
-  transition: all 0.3s ease;
-  box-sizing: border-box;
   outline: none;
+  transition: all .3s ease;
 }
-
-.input-control::placeholder {
-  color: var(--text-light);
-}
-
 .input-control:focus {
-  outline: none;
   border-color: var(--primary);
   background-color: #fefefe;
+  box-shadow: 0 0 0 4px rgba(230,126,34,.1);
+  transform: translateY(-1px);
 }
+.input-control::placeholder { color: var(--text-light); font-weight: 400; }
 
-.input-error {
-  border-color: var(--danger) !important;
-}
-
-.error-text {
-  color: var(--danger);
-  font-size: 14px;
-  margin-top: 5px;
-  font-weight: 500;
-  display: block;
-}
-
-/* Password field */
-.password-container {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.password-input {
-  padding-right: 50px;
-}
-
+.password-container { position: relative; display: flex; align-items: center; }
+.password-input { padding-right: 3.5rem; }
 .visibility-icon {
-  position: absolute;
-  right: 16px;
+  position: absolute; right: 1rem;
   background: var(--background);
-  border: none;
-  border-radius: 15px;
-  padding: 8px;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
+  border: none; border-radius: 50%;
+  padding: .6rem; cursor: pointer;
+  transition: all .3s ease; display: flex; align-items: center; justify-content: center;
 }
+.visibility-icon:hover { background-color: var(--primary); color: var(--white); transform: scale(1.1); }
+.eye-icon { font-size: 1.1rem; }
 
-.visibility-icon:hover {
-  background-color: var(--border);
-}
-
-.eye-icon {
-  font-size: 16px;
-}
-
-/* Form actions */
-.form-action {
-  margin: 0;
-}
-
+/* ==== Actions ==== */
+.form-action { margin: 0; }
 .btn {
-  width: 100%;
-  padding: clamp(12px, 2.4vh, 15px);
-  background-color: var(--primary);
-  color: white;
+  width: 100%; /* כפתור על כל הרוחב */
+  padding: clamp(.9rem, 2.8vh, 1.1rem);
+  background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+  color: var(--white);
   border: none;
-  border-radius: 25px;
-  font-size: clamp(16px, 2.4vw, 18px);
+  border-radius: 30px;
+  font-size: clamp(1rem, 2.5vw, 1.1rem);
   font-weight: 700;
   cursor: pointer;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  transition: all .3s ease;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 15px rgba(230,126,34,.3);
+  letter-spacing: .5px;
 }
-
 .btn:hover:not(.btn-disabled) {
-  background-color: #e69a1a;
-  transform: translateY(-2px);
-  box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+  background: linear-gradient(135deg, #d68910, #b7950b);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(230,126,34,.4);
 }
+.btn:active:not(.btn-disabled) { transform: translateY(-1px); box-shadow: 0 4px 15px rgba(230,126,34,.3); }
+.btn-disabled { background: linear-gradient(135deg, var(--text-light), #95a5a6); cursor: not-allowed; box-shadow: none; }
 
-.btn:active:not(.btn-disabled) {
-  transform: translateY(0);
+/* ==== Links ==== */
+.form-link-button { background: none; border: none; cursor: pointer; padding: 0; width: 100%; margin: .6rem 0 0 0; }
+.form-link {
+  font-size: clamp(.95rem, 2.3vw, 1rem);
+  font-weight: 600;
+  color: var(--secondary);
+  text-align: center;
+  display: block;
+  text-decoration: none;
+  transition: all .3s ease;
+  position: relative;
 }
-
-.btn-disabled {
-  background-color: var(--text-light);
-  cursor: not-allowed;
-  box-shadow: none;
+.form-link::after {
+  content: '';
+  position: absolute; bottom: -2px; left: 50%; transform: translateX(-50%);
+  width: 0; height: 2px; background: var(--secondary);
+  transition: width .3s ease;
 }
+.form-link:hover { color: #0984e3; }
+.form-link:hover::after { width: 100%; }
 
-.btn-disabled:hover {
-  transform: none;
-  background-color: var(--text-light);
+/* ==== Footer (under the form, centered) ==== */
+.form-footer-button { background: none; border: none; cursor: pointer; padding: 0; width: 100%; transition: all .3s ease; }
+.form-footer {
+  margin-top: 2rem;
+  padding: 1.2rem 0;
+  font-size: clamp(.9rem, 2.2vw, 1rem);
+  font-weight: 600;
+  color: var(--text);
+  text-align: center;  /* מרכז */
+  width: 100%;
+  letter-spacing: .3px;
+  border-top: 1px solid var(--border);
+  position: relative;
 }
+.form-footer::before {
+  content: '';
+  position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+  width: 60px; height: 2px;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+}
+.form-footer-link { text-decoration: none; color: var(--primary); transition: color .3s ease; font-weight: 700; }
+.form-footer-button:hover .form-footer-link { color: var(--primary-hover); }
+.form-footer-button:hover { transform: translateY(-1px); }
 
-/* Spinner */
+/* ==== Spinner ==== */
 .spinner {
-  width: 20px;
-  height: 20px;
-  border: 2px solid var(--white);
-  border-top: 2px solid transparent;
+  width: 22px; height: 22px;
+  border: 3px solid var(--white);
+  border-top: 3px solid transparent;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
+@keyframes spin { 0% {transform: rotate(0);} 100% {transform: rotate(360deg);} }
 
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+/* ==== Focus accessibility ==== */
+.input-control:focus-visible,
+.btn:focus-visible,
+.form-link:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
 }
 
-/* Form links */
-.form-link-button {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0;
-  width: 100%;
-  margin-top: clamp(12px, 2vh, 20px);
+/* ==== Responsive tweaks ==== */
+@media (min-width: 1366px) and (max-width: 1920px) {
+  .login-screen { padding: 0 1rem; }
+  .login-screen .container { max-width: 600px; padding: clamp(2.5rem, 3.5vw, 3.5rem); }
+  .logo-background { width: clamp(100px, 7vw, 120px); height: clamp(100px, 7vw, 120px); }
+  .form { gap: clamp(1.2rem, 2.8vh, 1.8rem); }
+}
+@media (max-width: 768px) {
+  .login-screen { padding: 1rem; }
+  .login-screen .container { max-width: 520px; padding: 2rem 1.5rem; border-radius: 20px; }
+  .logo-background { width: 80px; height: 80px; border-radius: 20px; }
+  .logo-text { font-size: 32px; }
+}
+@media (max-width: 480px) {
+  .login-screen { padding: .5rem; }
+  .login-screen .container { border-radius: 18px; padding: 1.5rem 1rem; max-width: 100%; }
+  .logo-background { width: 70px; height: 70px; border-radius: 18px; }
+  .logo-text { font-size: 28px; }
 }
 
-.form-link {
-  color: var(--secondary);
-  text-decoration: none;
-  font-weight: 600;
-  transition: color 0.3s ease;
-  font-size: 16px;
-}
-
-.form-link:hover {
-  color: #3da89e;
-  text-decoration: underline;
-}
-
-/* Footer */
-.form-footer-button {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0;
-  width: 100%;
-}
-
-.form-footer {
-  margin-top: clamp(12px, 2vh, 20px);
-  color: var(--text);
-  font-weight: 600;
-  font-size: 15px;
-  text-align: center;
-  letter-spacing: 0.15px;
-  border-top: 1px solid var(--border);
-  padding-top: clamp(16px, 3vh, 24px);
-}
-
-.form-footer-link {
-  text-decoration: underline;
-  color: var(--secondary);
-  transition: color 0.3s ease;
-}
-
-.form-footer-button:hover .form-footer-link {
-  color: #3da89e;
-}
-
-/* התאמה למסכים קטנים מאוד - העתקה מדויקת */
-@media (max-width: 360px) {
-  .container { 
-    border-radius: 16px; 
-  }
-}
+/* ==== Entry animation ==== */
+@keyframes fadeInUp { from {opacity:0; transform:translateY(30px);} to {opacity:1; transform:translateY(0);} }
+.login-screen .container { animation: fadeInUp .6s ease-out; }
