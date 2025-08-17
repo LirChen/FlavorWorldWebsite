@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { authService } from '../../services/authService';
 import { useAuth } from '../../services/AuthContext';
 import { chatService } from '../../services/chatServices';
+import { useNavigate } from 'react-router-dom';
 import './LoginScreen.css';
 
 const FLAVORWORLD_COLORS = {
@@ -17,7 +18,8 @@ const FLAVORWORLD_COLORS = {
   danger: '#E74C3C',
 };
 
-export default function LoginScreen({ navigate }) {
+export default function LoginScreen() {
+  const navigate = useNavigate();
   const { login } = useAuth();
 
   const [form, setForm] = useState({
@@ -207,24 +209,24 @@ export default function LoginScreen({ navigate }) {
             </div>
 
             <button
-            type="button"
-            className="form-link-button"
-            onClick={() => navigate('/forgot-password')}
+                type="button"
+                className="form-link-button"
+                onClick={() => navigate('/forgot-password')}
             >
-            <span className="form-link">Forgot password?</span>
+                <span className="form-link">Forgot password?</span>
             </button>
         </div>
         </div>
 
         <button
-        type="button"
-        className="form-footer-button"
-        onClick={() => navigate('/register')}
+            type="button"
+            className="form-footer-button"
+            onClick={() => navigate('/register')}
         >
-        <p className="form-footer">
-            Don't have an account?{' '}
-            <span className="form-footer-link">Join FlavorWorld</span>
-        </p>
+            <p className="form-footer">
+                Don't have an account?{' '}
+                <span className="form-footer-link">Join FlavorWorld</span>
+            </p>
         </button>
     </div>
     );
