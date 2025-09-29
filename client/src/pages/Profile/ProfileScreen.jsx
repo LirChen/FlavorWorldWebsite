@@ -22,15 +22,15 @@ import {
   Info,
   Trash2
 } from 'lucide-react';
-import { useAuth } from '../../../contexts/AuthContext';
-import { recipeService } from '../../../services/recipeService';
-import { userService } from '../../../services/userService';
-import { chatService } from '../../../services/chatServices';
-import { statisticsService } from '../../../services/statisticsService';
-import { groupService } from '../../../services/groupService';
-import UserAvatar from '../../common/UserAvatar';
-import PostComponent from '../../common/PostComponent';
 import './ProfileScreen.css';
+import UserAvatar from '../../components/common/UserAvatar';
+import { useAuth } from '../../services/AuthContext';
+import { recipeService } from '../../services/recipeService';
+import { userService } from '../../services/UserService';
+import { chatService } from '../../services/chatServices';
+import { statisticsService } from '../../services/statisticsService';
+import { groupService } from '../../services/groupService';
+import PostComponent from '../../components/common/PostComponent';
 
 const ProfileScreen = ({ route, navigation }) => {
   const { currentUser, logout } = useAuth();
@@ -342,7 +342,7 @@ const ProfileScreen = ({ route, navigation }) => {
           otherUser: {
             userId: userId,
             userName: profileUser.fullName || profileUser.name || 'Unknown User',
-            userAvatar: profileUser.avatar,
+            UserAvatar: profileUser.avatar,
             isOnline: false
           }
         });

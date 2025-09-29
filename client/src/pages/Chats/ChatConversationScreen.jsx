@@ -17,9 +17,9 @@ import {
   ChefHat,
   Loader2
 } from 'lucide-react';
-import { useAuth } from '../../../services/AuthContext';
-import UserAvatar from '../../common/UserAvatar';
-import { chatService } from '../../../services/chatServices';
+import { useAuth } from '../../services/AuthContext';
+import UserAvatar from '../../components/common/UserAvatar';
+import { chatService } from '../../services/chatServices';
 
 const FLAVORWORLD_COLORS = {
   primary: '#F5A623',

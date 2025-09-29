@@ -16,7 +16,7 @@ class UserService {
     // Add auth token interceptor
     this.api.interceptors.request.use(
       (config) => {
-        const token = localStorage.getItem('authToken');
+        const token = localStorage.getItem('userToken');
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
         }

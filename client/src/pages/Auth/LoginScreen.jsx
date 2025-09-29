@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { authService } from '../../services/authService';
-import { useAuth } from '../../services/AuthContext';
-import { chatService } from '../../services/chatServices';
 import './LoginScreen.css';
+import { authService } from '../../services/authService';
+import { chatService } from '../../services/chatServices';
+import { useAuth } from '../../services/AuthContext';
 
 export default function LoginScreen() {
   const navigate = useNavigate();
@@ -104,7 +104,7 @@ export default function LoginScreen() {
           console.log('💬 Chat service initialized');
 
           alert(`Welcome! Hello ${user.fullName || user.name || 'Chef'}!`);
-          navigate('/dashboard'); 
+          navigate('/home'); 
         } else {
           console.log('❌ Missing token or user data');
           alert('Error: Invalid response from server');
