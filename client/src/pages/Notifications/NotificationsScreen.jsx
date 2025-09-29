@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { ArrowLeft, Heart, MessageCircle, UserPlus, ChefHat, Users, CheckCircle, Bell, Loader } from 'lucide-react';
-import { useAuth } from '../../../contexts/AuthContext'; // Updated path for React
-import { notificationService } from '../../../services/notificationService';
-import UserAvatar from '../../common/UserAvatar';
 import './NotificationsScreen.css'; // We'll define CSS separately
+import { useAuth } from '../../services/AuthContext';
+import { notificationService } from '../../services/NotificationService';
+import UserAvatar from '../../components/common/UserAvatar';
 
 const FLAVORWORLD_COLORS = {
   primary: '#F5A623',

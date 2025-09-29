@@ -6,11 +6,11 @@ import {
   AlertCircle, 
   Loader 
 } from 'lucide-react';
-import { useAuth } from '../../../contexts/AuthContext';
-import { recipeService } from '../../../services/recipeService';
-import { groupService } from '../../../services/groupService';
-import UserAvatar from '../../common/UserAvatar';
 import './PostModalScreen.css';
+import { useAuth } from '../../services/AuthContext';
+import { recipeService } from '../../services/recipeService';
+import { groupService } from '../../services/groupService';
+import UserAvatar from '../../components/common/UserAvatar';
 
 const PostModalScreen = ({ route, navigation, onClose }) => {
   const { currentUser } = useAuth();

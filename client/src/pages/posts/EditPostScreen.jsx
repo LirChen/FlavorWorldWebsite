@@ -9,10 +9,10 @@ import {
  Users,
  Loader
 } from 'lucide-react';
-import { recipeService } from '../../../services/recipeService';
-import { groupService } from '../../../services/groupService';
-import { useAuth } from '../../../contexts/AuthContext';
 import './EditPostScreen.css';
+import { useAuth } from '../../services/AuthContext';
+import { recipeService } from '../../services/recipeService';
+import { groupService } from '../../services/groupService';
 
 const FLAVORWORLD_COLORS = {
  primary: '#F5A623',

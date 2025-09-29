@@ -1,25 +1,11 @@
-import React from 'react'
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
-import { AuthProvider } from './services/AuthContext'
-import RegisterScreen from './pages/Auth/RegisterScreen'
-import ForgotPasswordScreen from './pages/Auth/ForgotPasswordScreen'
-import LoginScreen from './pages/Auth/LoginScreen'
+import React from 'react';
+import { AuthProvider } from './services/AuthContext';
+import AppNavigator from './navigation/AppNavigator';
 
-function App() {
+export default function App() {
   return (
     <AuthProvider>
-      <Router>
-        <div className="App">
-          <Routes>
-            <Route path="/" element={<LoginScreen />} />
-            <Route path="/login" element={<LoginScreen />} />
-            <Route path="/register" element={<RegisterScreen />} />
-            <Route path="/forgot-password" element={<ForgotPasswordScreen/>} />
-          </Routes>
-        </div>
-      </Router>
+      <AppNavigator />
     </AuthProvider>
-  )
+  );
 }
-
-export default App;

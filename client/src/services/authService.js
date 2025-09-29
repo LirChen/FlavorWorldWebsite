@@ -1,6 +1,5 @@
 import axios from 'axios';
 
-// שינוי קטן - localhost במקום IP מקומי
 const API_BASE_URL = 'http://localhost:3000/api';
 
 const api = axios.create({

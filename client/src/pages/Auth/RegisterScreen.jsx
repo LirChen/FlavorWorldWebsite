@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { authService } from '../../services/authService';
 import { useNavigate } from 'react-router-dom';
 import './RegisterScreen.css';
+import { authService } from '../../services/authService';
 
 const FLAVORWORLD_COLORS = {
   primary: '#F5A623',

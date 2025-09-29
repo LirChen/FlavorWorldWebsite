@@ -8,7 +8,7 @@ import {
   ArrowLeft,
   Key
 } from 'lucide-react';
-import { authService } from '../../../services/authService';
+import { authService } from '../../services/authService';
 
 const FLAVORWORLD_COLORS = {
   primary: '#F5A623',
