@@ -9,6 +9,7 @@ import {
   X,
   RefreshCw,
   ChefHat,
+  LogOut,
   Globe,
   Users as UsersIcon,
   Loader2,
@@ -359,6 +360,11 @@ const HomeScreen = () => {
                 name={currentUser?.fullName || currentUser?.name}
                 size={32}
               />
+            </button>
+
+            <button className="logout-btn" onClick={handleLogout}>
+              <LogOut size={20} />
+              <span>Logout</span>
             </button>
           </div>
         </div>

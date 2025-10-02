@@ -1,6 +1,6 @@
-/* GroupMembersScreen.css */
+/* GroupAdminRequestsScreen.css */
 
-.group-members-screen {
+.admin-requests-screen {
   min-height: 100vh;
   background: var(--background);
   display: flex;
@@ -8,7 +8,7 @@
 }
 
 /* Header */
-.members-header {
+.requests-header {
   position: sticky;
   top: 0;
   z-index: 100;
@@ -21,13 +21,26 @@
   box-shadow: var(--shadow);
 }
 
-.members-header h1 {
+.header-title-container {
+  flex: 1;
+  text-align: center;
+  padding: 0 16px;
+}
+
+.header-title-container h1 {
   font-size: 18px;
   font-weight: 600;
   color: var(--text);
   margin: 0;
-  flex: 1;
-  text-align: center;
+}
+
+.header-title-container p {
+  font-size: 14px;
+  color: var(--text-light);
+  margin: 2px 0 0 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .back-btn {
@@ -42,10 +55,28 @@
   cursor: pointer;
   transition: background 0.2s;
   color: var(--accent);
+  flex-shrink: 0;
 }
 
 .back-btn:hover {
   background: var(--hover);
+}
+
+.counter-badge {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--warning);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.counter-badge span {
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
 }
 
 .header-placeholder {
@@ -78,182 +109,141 @@
   color: var(--text-light);
 }
 
-/* Search */
-.search-container {
+/* Summary Card */
+.summary-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
   background: var(--white);
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--border);
+  margin: 16px;
+  padding: 16px;
+  border-radius: 12px;
+  border-left: 4px solid var(--warning);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
-.search-bar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 16px;
-  background: var(--background);
-  border: 1px solid var(--border);
-  border-radius: 20px;
+.summary-icon {
+  color: var(--warning);
 }
 
-.search-bar input {
+.summary-text {
   flex: 1;
-  border: none;
-  background: none;
+}
+
+.summary-text h3 {
   font-size: 16px;
+  font-weight: 600;
   color: var(--text);
+  margin: 0 0 4px 0;
 }
 
-.search-bar input:focus {
-  outline: none;
-}
-
-.search-bar button {
-  background: none;
-  border: none;
+.summary-text p {
+  font-size: 14px;
   color: var(--text-light);
-  cursor: pointer;
-  padding: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: color 0.2s;
+  line-height: 1.4;
+  margin: 0;
 }
 
-.search-bar button:hover {
-  color: var(--text);
-}
-
-.search-bar svg {
-  color: var(--text-light);
-}
-
-/* Members List */
-.members-list {
+/* Requests List */
+.requests-list {
   flex: 1;
+  padding: 0 16px;
   overflow-y: auto;
 }
 
-.member-item {
+.request-item {
+  background: var(--white);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.user-info {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 16px;
-  background: var(--white);
-  border-bottom: 1px solid var(--border);
-  transition: background 0.2s;
+  margin-bottom: 16px;
 }
 
-.member-item:hover {
-  background: var(--hover);
-}
-
-.member-info {
+.user-details {
   flex: 1;
   min-width: 0;
 }
 
-.member-info h3 {
+.user-details h3 {
   font-size: 16px;
   font-weight: 600;
   color: var(--text);
-  margin: 0 0 2px 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.member-email {
-  font-size: 14px;
-  color: var(--text-light);
   margin: 0 0 4px 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.member-meta {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-}
-
-.member-role {
+.user-bio {
   font-size: 14px;
-  color: var(--accent);
-  font-weight: 500;
+  color: var(--text-light);
+  line-height: 1.4;
+  margin: 0 0 4px 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
-.member-join-date {
+.request-date {
   font-size: 12px;
   color: var(--text-light);
 }
 
-/* Badges */
-.badges {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin-right: 8px;
-}
-
-.badge {
-  padding: 4px 8px;
-  border-radius: 10px;
-  font-size: 10px;
-  font-weight: 600;
-  color: white;
-  text-align: center;
-}
-
-.badge.owner {
-  background: var(--warning);
-}
-
-.badge.admin {
-  background: var(--accent);
-}
-
-/* Action Buttons */
 .action-buttons {
   display: flex;
-  gap: 8px;
+  gap: 12px;
 }
 
-.promote-btn,
-.remove-btn {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  border: none;
+.approve-btn,
+.reject-btn {
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 6px;
+  padding: 12px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
 }
 
-.promote-btn {
-  background: var(--info);
+.approve-btn {
+  background: var(--success);
   color: white;
 }
 
-.promote-btn:hover {
+.approve-btn:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(52, 152, 219, 0.3);
+  box-shadow: 0 4px 8px rgba(39, 174, 96, 0.3);
 }
 
-.remove-btn {
+.approve-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.reject-btn {
   background: var(--danger);
   color: white;
 }
 
-.remove-btn:hover:not(:disabled) {
+.reject-btn:hover:not(:disabled) {
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(231, 76, 60, 0.3);
 }
 
-.remove-btn:disabled {
+.reject-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
@@ -269,9 +259,9 @@
   text-align: center;
 }
 
-.empty-icon {
-  font-size: 80px;
-  margin-bottom: 16px;
+.empty-state svg {
+  color: var(--text-light);
+  margin-bottom: 20px;
   opacity: 0.5;
 }
 
@@ -291,30 +281,31 @@
 
 /* Responsive */
 @media (max-width: 768px) {
-  .members-header h1 {
+  .header-title-container h1 {
     font-size: 16px;
   }
 
-  .member-item {
+  .summary-card {
+    margin: 12px;
     padding: 12px;
   }
 
-  .member-meta {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 4px;
+  .requests-list {
+    padding: 0 12px;
+  }
+
+  .request-item {
+    padding: 12px;
   }
 }
 
 @media (max-width: 480px) {
   .action-buttons {
     flex-direction: column;
-    gap: 4px;
   }
 
-  .promote-btn,
-  .remove-btn {
-    width: 32px;
-    height: 32px;
+  .user-info {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }

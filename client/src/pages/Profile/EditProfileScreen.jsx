@@ -1,26 +1,26 @@
-import React, { useState, useRef } from 'react';
-import { 
-  ArrowLeft, 
-  Camera, 
-  Lock, 
-  ChevronRight, 
-  Check, 
-  X, 
-  Loader 
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import {
+  ArrowLeft,
+  Save,
+  Camera,
+  Loader2,
+  Lock,
+  X,
+  Check
 } from 'lucide-react';
-import { useAuth } from '../../../contexts/AuthContext';
-import UserAvatar from '../../common/UserAvatar';
-import PasswordInput from '../../common/PasswordInput';
-import { userService } from '../../../services/userService';
 import './EditProfileScreen.css';
+import { useAuth } from '../../services/AuthContext';
+import UserAvatar from '../../components/common/UserAvatar';
+import { userService } from '../../services/userService';
 
-const EditProfileScreen = ({ navigation }) => {
+const EditProfileScreen = () => {
+  const navigate = useNavigate();
   const { currentUser, updateUserProfile } = useAuth();
-  const fileInputRef = useRef(null);
   
   const [fullName, setFullName] = useState(currentUser?.fullName || currentUser?.name || '');
   const [bio, setBio] = useState(currentUser?.bio || '');
-  const [newAvatarFile, setNewAvatarFile] = useState(null);
+  const [newAvatar, setNewAvatar] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState(null);
   
   const [currentPassword, setCurrentPassword] = useState('');
@@ -31,31 +31,21 @@ const EditProfileScreen = ({ navigation }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
-  const handlePickImage = () => {
-    fileInputRef.current?.click();
-  };
+  const handlePickImage = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        alert('Image size should be less than 5MB');
+        return;
+      }
 
-  const handleImageSelect = async (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    if (!file.type.startsWith('image/')) {
-      alert('Please select an image file');
-      return;
+      setNewAvatar(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAvatarPreview(reader.result);
+      };
+      reader.readAsDataURL(file);
     }
-
-    if (file.size > 5 * 1024 * 1024) {
-      alert('Image size should be less than 5MB');
-      return;
-    }
-
-    setNewAvatarFile(file);
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setAvatarPreview(e.target.result);
-    };
-    reader.readAsDataURL(file);
   };
 
   const handleSaveProfile = async () => {
@@ -69,13 +59,15 @@ const EditProfileScreen = ({ navigation }) => {
     try {
       let avatarUrl = currentUser?.avatar;
 
-      if (newAvatarFile) {
+      if (newAvatar) {
         setIsUploadingAvatar(true);
-        const avatarResult = await userService.updateAvatar(newAvatarFile);
+        const formData = new FormData();
+        formData.append('avatar', newAvatar);
+        
+        const avatarResult = await userService.updateAvatar(formData);
         
         if (avatarResult.success) {
           avatarUrl = avatarResult.data.url;
-          console.log('Avatar uploaded successfully');
         } else {
           alert(avatarResult.message || 'Failed to upload avatar');
           return;
@@ -93,8 +85,6 @@ const EditProfileScreen = ({ navigation }) => {
         profileData.avatar = avatarUrl;
       }
 
-      console.log('Sending profile update');
-
       const result = await userService.updateProfile(profileData);
 
       if (result.success) {
@@ -106,12 +96,10 @@ const EditProfileScreen = ({ navigation }) => {
         });
 
         alert('Your profile has been updated successfully');
-        navigation.goBack();
+        navigate(-1);
       } else {
         alert(result.message || 'Failed to update profile');
-        return;
       }
-
     } catch (error) {
       alert(error.message || 'Failed to update profile');
     } finally {
@@ -147,8 +135,6 @@ const EditProfileScreen = ({ navigation }) => {
       });
 
       if (result.success) {
-        setIsLoading(false);
-        
         alert('Your password has been changed successfully');
         setShowPasswordModal(false);
         setCurrentPassword('');
@@ -156,103 +142,35 @@ const EditProfileScreen = ({ navigation }) => {
         setConfirmPassword('');
       } else {
         alert(result.message || 'Failed to change password');
-        return;
       }
     } catch (error) {
-      setIsLoading(false);
-      console.error('Change password error occurred');
       alert(error.message || 'Failed to change password');
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const renderPasswordModal = () => (
-    showPasswordModal && (
-      <div className="modal-overlay" onClick={() => setShowPasswordModal(false)}>
-        <div className="modal-content" onClick={e => e.stopPropagation()}>
-          <div className="modal-header">
-            <h2 className="modal-title">Change Password</h2>
-            <button 
-              onClick={() => setShowPasswordModal(false)}
-              className="modal-close-button"
-            >
-              <X size={24} />
-            </button>
-          </div>
-
-          <div className="modal-body">
-            <div className="input-group">
-              <label className="label">Current Password</label>
-              <PasswordInput
-                value={currentPassword}
-                onChange={setCurrentPassword}
-                placeholder="Enter current password"
-                className="password-input-style"
-              />
-            </div>
-
-            <div className="input-group">
-              <label className="label">New Password</label>
-              <PasswordInput
-                value={newPassword}
-                onChange={setNewPassword}
-                placeholder="Enter new password"
-                className="password-input-style"
-              />
-            </div>
-
-            <div className="input-group">
-              <label className="label">Confirm New Password</label>
-              <PasswordInput
-                value={confirmPassword}
-                onChange={setConfirmPassword}
-                placeholder="Confirm new password"
-                className="password-input-style"
-              />
-            </div>
-
-            <button
-              className={`save-button ${isLoading ? 'disabled' : ''}`}
-              onClick={handleChangePassword}
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <Loader size={20} className="loading-spinner" />
-              ) : (
-                'Change Password'
-              )}
-            </button>
-          </div>
-        </div>
-      </div>
-    )
-  );
-
   return (
     <div className="edit-profile-screen">
-      <div className="header">
-        <button 
-          className="back-button" 
-          onClick={() => navigation.goBack()}
-        >
+      {/* Header */}
+      <header className="edit-header">
+        <button className="back-btn" onClick={() => navigate(-1)}>
           <ArrowLeft size={24} />
         </button>
         
-        <h1 className="header-title">Edit Profile</h1>
+        <h1>Edit Profile</h1>
         
         <button
-          className={`save-header-button ${isLoading ? 'disabled' : ''}`}
+          className="save-header-btn"
           onClick={handleSaveProfile}
           disabled={isLoading}
         >
-          {isLoading ? (
-            <Loader size={20} className="loading-spinner" />
-          ) : (
-            'Save'
-          )}
+          {isLoading ? <Loader2 className="spinner" size={20} /> : 'Save'}
         </button>
-      </div>
+      </header>
 
-      <div className="content">
+      <div className="edit-content">
+        {/* Avatar Section */}
         <div className="avatar-section">
           <div className="avatar-container">
             <UserAvatar
@@ -263,37 +181,32 @@ const EditProfileScreen = ({ navigation }) => {
             
             {isUploadingAvatar && (
               <div className="uploading-overlay">
-                <Loader size={40} className="loading-spinner" />
+                <Loader2 className="spinner" size={40} />
               </div>
             )}
           </div>
           
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            onChange={handleImageSelect}
-            style={{ display: 'none' }}
-          />
-          
-          <button 
-            className="change-photo-button"
-            onClick={handlePickImage}
-            disabled={isUploadingAvatar}
-          >
+          <label className="change-photo-btn">
             <Camera size={20} />
             <span>Change Photo</span>
-          </button>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handlePickImage}
+              disabled={isUploadingAvatar}
+              style={{ display: 'none' }}
+            />
+          </label>
         </div>
 
+        {/* Form Section */}
         <div className="form-section">
-          <h2 className="section-title">Profile Information</h2>
+          <h2>Profile Information</h2>
           
           <div className="input-group">
-            <label className="label">Full Name</label>
+            <label>Full Name</label>
             <input
               type="text"
-              className="input"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               placeholder="Enter your full name"
@@ -301,54 +214,54 @@ const EditProfileScreen = ({ navigation }) => {
           </div>
 
           <div className="input-group">
-            <label className="label">Email</label>
+            <label>Email</label>
             <input
               type="email"
-              className="input input-disabled"
               value={currentUser?.email || ''}
-              readOnly
-              placeholder="Email address"
+              disabled
+              className="input-disabled"
             />
             <span className="help-text">Email cannot be changed</span>
           </div>
 
           <div className="input-group">
-            <label className="label">Bio</label>
+            <label>Bio</label>
             <textarea
-              className="input text-area"
               value={bio}
               onChange={(e) => setBio(e.target.value)}
               placeholder="Tell us about yourself and your cooking passion..."
               rows={4}
               maxLength={500}
             />
-            <span className="character-count">{bio.length}/500</span>
+            <span className="char-count">{bio.length}/500</span>
           </div>
         </div>
 
+        {/* Security Section */}
         <div className="form-section">
-          <h2 className="section-title">Security</h2>
+          <h2>Security</h2>
           
           <button 
-            className="password-button"
+            className="password-btn"
             onClick={() => setShowPasswordModal(true)}
           >
-            <div className="password-button-content">
+            <div className="password-btn-content">
               <Lock size={20} />
-              <span className="password-button-text">Change Password</span>
+              <span>Change Password</span>
             </div>
-            <ChevronRight size={20} />
+            <span className="arrow">→</span>
           </button>
         </div>
 
+        {/* Save Button */}
         <div className="button-section">
           <button
-            className={`save-button ${isLoading ? 'disabled' : ''}`}
+            className="save-btn"
             onClick={handleSaveProfile}
             disabled={isLoading}
           >
             {isLoading ? (
-              <Loader size={20} className="loading-spinner" />
+              <Loader2 className="spinner" size={20} />
             ) : (
               <>
                 <Check size={20} />
@@ -359,7 +272,63 @@ const EditProfileScreen = ({ navigation }) => {
         </div>
       </div>
 
-      {renderPasswordModal()}
+      {/* Password Modal */}
+      {showPasswordModal && (
+        <div className="modal-overlay" onClick={() => setShowPasswordModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Change Password</h3>
+              <button onClick={() => setShowPasswordModal(false)}>
+                <X size={24} />
+              </button>
+            </div>
+
+            <div className="modal-body">
+              <div className="input-group">
+                <label>Current Password</label>
+                <input
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  placeholder="Enter current password"
+                />
+              </div>
+
+              <div className="input-group">
+                <label>New Password</label>
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Enter new password"
+                />
+              </div>
+
+              <div className="input-group">
+                <label>Confirm New Password</label>
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Confirm new password"
+                />
+              </div>
+
+              <button
+                className="modal-save-btn"
+                onClick={handleChangePassword}
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <Loader2 className="spinner" size={20} />
+                ) : (
+                  'Change Password'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

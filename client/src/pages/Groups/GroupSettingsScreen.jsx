@@ -1,8 +1,19 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import {
+  ArrowLeft,
+  Save,
+  Camera,
+  Trash2,
+  ChevronDown,
+  ChevronUp,
+  Check,
+  Loader2,
+  AlertCircle
+} from 'lucide-react';
+import './GroupSettingsScreen.css';
 import { useAuth } from '../../services/AuthContext';
 import { groupService } from '../../services/groupService';
-import './GroupSettingsScreen.css';
 
 const CATEGORIES = [
   'General', 'Italian', 'Asian', 'Mediterranean', 'Mexican', 
@@ -12,86 +23,104 @@ const CATEGORIES = [
 
 const GroupSettingsScreen = () => {
   const navigate = useNavigate();
-  const location = useLocation();
+  const { groupId } = useParams();
   const { currentUser } = useAuth();
-  const { groupId, groupData } = location.state || {};
-  const fileInputRef = useRef(null);
   
   const [formData, setFormData] = useState({
-    name: groupData?.name || '',
-    description: groupData?.description || '',
-    category: groupData?.category || 'General',
-    rules: groupData?.rules || '',
-    isPrivate: groupData?.isPrivate || false,
-    allowMemberPosts: groupData?.settings?.allowMemberPosts ?? groupData?.allowMemberPosts ?? true,
-    requireApproval: groupData?.settings?.requireApproval ?? groupData?.requireApproval ?? false,
-    allowInvites: groupData?.settings?.allowInvites ?? groupData?.allowInvites ?? true,
+    name: '',
+    description: '',
+    category: 'General',
+    rules: '',
+    isPrivate: false,
+    allowMemberPosts: true,
+    requireApproval: false,
+    allowInvites: true,
   });
   
-  const [selectedImage, setSelectedImage] = useState(groupData?.image || null);
-  const [selectedImageFile, setSelectedImageFile] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [groupData, setGroupData] = useState(null);
   
   const isCreator = groupData ? groupService.isCreator(groupData, currentUser?.id || currentUser?._id) : false;
   const isAdmin = groupData ? groupService.isAdmin(groupData, currentUser?.id || currentUser?._id) : false;
   const canEdit = isCreator || isAdmin;
-  
-  useEffect(() => {
-    if (!groupId || !groupData) {
-      navigate('/groups');
-      return;
-    }
-    
-    if (!canEdit) {
-      alert('Access Denied: Only group admins can edit group settings');
-      navigate(-1);
-    }
-  }, [canEdit, groupId, groupData, navigate]);
 
-  const handleImageSelect = (event) => {
-    const file = event.target.files[0];
+  useEffect(() => {
+    loadGroupData();
+  }, [groupId]);
+
+  const loadGroupData = async () => {
+    try {
+      const result = await groupService.getGroup(groupId);
+      
+      if (result.success) {
+        const group = result.data;
+        setGroupData(group);
+        
+        setFormData({
+          name: group.name || '',
+          description: group.description || '',
+          category: group.category || 'General',
+          rules: group.rules || '',
+          isPrivate: group.isPrivate || false,
+          allowMemberPosts: group.settings?.allowMemberPosts ?? group.allowMemberPosts ?? true,
+          requireApproval: group.settings?.requireApproval ?? group.requireApproval ?? false,
+          allowInvites: group.settings?.allowInvites ?? group.allowInvites ?? true,
+        });
+        
+        setImagePreview(group.image);
+        
+        if (!groupService.isCreator(group, currentUser?.id || currentUser?._id) && 
+            !groupService.isAdmin(group, currentUser?.id || currentUser?._id)) {
+          alert('Only group admins can edit group settings');
+          navigate(-1);
+        }
+      } else {
+        alert(result.message || 'Failed to load group');
+        navigate(-1);
+      }
+    } catch (error) {
+      console.error('Load group error:', error);
+      alert('Failed to load group');
+      navigate(-1);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleImagePicker = (e) => {
+    const file = e.target.files[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) { // 5MB limit
-        alert('Error: Image size should be less than 5MB');
+      if (file.size > 5 * 1024 * 1024) {
+        alert('Image size should be less than 5MB');
         return;
       }
-      
-      if (!file.type.startsWith('image/')) {
-        alert('Error: Please select a valid image file');
-        return;
-      }
-      
-      setSelectedImageFile(file);
+
+      setSelectedImage(file);
       const reader = new FileReader();
-      reader.onload = (e) => {
-        setSelectedImage(e.target.result);
+      reader.onloadend = () => {
+        setImagePreview(reader.result);
       };
       reader.readAsDataURL(file);
     }
   };
 
-  const handleImageClick = () => {
-    const choice = window.prompt(
-      'Image Options:\n1. Select New Image\n2. Remove Current Image\n\nEnter 1 or 2:'
-    );
-    
-    if (choice === '1') {
-      fileInputRef.current?.click();
-    } else if (choice === '2') {
-      setSelectedImage(null);
-      setSelectedImageFile(null);
-    }
+  const handleRemoveImage = () => {
+    setSelectedImage(null);
+    setImagePreview(null);
   };
 
   const handleSaveChanges = async () => {
     if (!formData.name.trim()) {
-      alert('Error: Group name is required');
+      alert('Group name is required');
       return;
     }
 
-    setLoading(true);
+    setSaving(true);
     try {
       const updateData = {
         name: formData.name.trim(),
@@ -105,28 +134,33 @@ const GroupSettingsScreen = () => {
         updatedBy: currentUser?.id || currentUser?._id
       };
 
-      // Use the selected image file if it's different from the original
-      const imageFile = selectedImage !== groupData?.image ? selectedImageFile : null;
+      const formDataToSend = new FormData();
+      if (selectedImage) {
+        formDataToSend.append('image', selectedImage);
+      }
+      Object.keys(updateData).forEach(key => {
+        formDataToSend.append(key, updateData[key]);
+      });
 
-      const result = await groupService.updateGroup(groupId, updateData, imageFile);
+      const result = await groupService.updateGroup(groupId, formDataToSend);
 
       if (result.success) {
-        alert('Success: Group settings updated successfully');
+        alert('Group settings updated successfully');
         navigate(-1);
       } else {
-        alert('Error: ' + (result.message || 'Failed to update group settings'));
+        alert(result.message || 'Failed to update group settings');
       }
     } catch (error) {
       console.error('Update group error:', error);
-      alert('Error: Failed to update group settings');
+      alert('Failed to update group settings');
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
-  const handleDeleteGroup = async () => {
+  const handleDeleteGroup = () => {
     if (!isCreator) {
-      alert('Permission Denied: Only the group creator can delete the group');
+      alert('Only the group creator can delete the group');
       return;
     }
 
@@ -135,172 +169,124 @@ const GroupSettingsScreen = () => {
 
   const confirmDeleteGroup = async () => {
     setShowDeleteConfirm(false);
-    setLoading(true);
+    setSaving(true);
 
     try {
       const result = await groupService.deleteGroup(groupId, currentUser?.id || currentUser?._id);
 
       if (result.success) {
-        alert('Group Deleted: The group has been permanently deleted');
+        alert('The group has been permanently deleted');
         navigate('/groups');
       } else {
-        alert('Error: ' + (result.message || 'Failed to delete group'));
+        alert(result.message || 'Failed to delete group');
       }
     } catch (error) {
       console.error('Delete group error:', error);
-      alert('Error: Failed to delete group');
+      alert('Failed to delete group');
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
-  const renderCategoryModal = () => (
-    showCategoryModal && (
-      <div className="group-settings-modal-overlay" onClick={() => setShowCategoryModal(false)}>
-        <div className="group-settings-modal-container" onClick={e => e.stopPropagation()}>
-          <div className="group-settings-modal-header">
-            <button 
-              onClick={() => setShowCategoryModal(false)}
-              className="group-settings-modal-close"
-            >
-              ✕
-            </button>
-            <h2 className="group-settings-modal-title">Select Category</h2>
-            <div className="group-settings-modal-placeholder" />
-          </div>
-          
-          <div className="group-settings-category-list">
-            {CATEGORIES.map((category) => (
-              <button
-                key={category}
-                className={`group-settings-category-item ${formData.category === category ? 'selected' : ''}`}
-                onClick={() => {
-                  setFormData(prev => ({ ...prev, category }));
-                  setShowCategoryModal(false);
-                }}
-              >
-                <span className={`group-settings-category-text ${formData.category === category ? 'selected' : ''}`}>
-                  {category}
-                </span>
-                {formData.category === category && (
-                  <span className="group-settings-category-check">✓</span>
-                )}
-              </button>
-            ))}
-          </div>
+  if (loading) {
+    return (
+      <div className="group-settings-screen">
+        <header className="settings-header">
+          <button className="back-btn" onClick={() => navigate(-1)}>
+            <ArrowLeft size={24} />
+          </button>
+          <h1>Group Settings</h1>
+          <div className="header-placeholder" />
+        </header>
+        
+        <div className="loading-container">
+          <Loader2 className="spinner" size={40} />
+          <p>Loading settings...</p>
         </div>
       </div>
-    )
-  );
-
-  const renderDeleteConfirmModal = () => (
-    showDeleteConfirm && (
-      <div className="group-settings-delete-modal-overlay">
-        <div className="group-settings-delete-modal-container">
-          <div className="group-settings-delete-modal-header">
-            <span className="group-settings-delete-modal-icon">⚠️</span>
-            <h2 className="group-settings-delete-modal-title">Delete Group</h2>
-          </div>
-          
-          <p className="group-settings-delete-modal-text">
-            Are you sure you want to delete "{groupData?.name}"?
-          </p>
-          <p className="group-settings-delete-modal-subtext">
-            This action cannot be undone. All posts, members, and data will be permanently lost.
-          </p>
-          
-          <div className="group-settings-delete-modal-actions">
-            <button
-              className="group-settings-delete-modal-cancel"
-              onClick={() => setShowDeleteConfirm(false)}
-            >
-              Cancel
-            </button>
-            
-            <button
-              className="group-settings-delete-modal-confirm"
-              onClick={confirmDeleteGroup}
-            >
-              Delete Group
-            </button>
-          </div>
-        </div>
-      </div>
-    )
-  );
+    );
+  }
 
   if (!canEdit) {
     return (
-      <div className="group-settings-container">
-        <div className="group-settings-error">
-          <span className="group-settings-error-icon">🔒</span>
-          <h2 className="group-settings-error-title">Access Denied</h2>
-          <p className="group-settings-error-subtitle">Only group admins can edit settings</p>
+      <div className="group-settings-screen">
+        <header className="settings-header">
+          <button className="back-btn" onClick={() => navigate(-1)}>
+            <ArrowLeft size={24} />
+          </button>
+          <h1>Group Settings</h1>
+          <div className="header-placeholder" />
+        </header>
+        
+        <div className="error-container">
+          <AlertCircle size={80} />
+          <h2>Access Denied</h2>
+          <p>Only group admins can edit settings</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="group-settings-container">
-      <div className="group-settings-header">
-        <button 
-          className="group-settings-header-back" 
-          onClick={() => navigate(-1)}
-        >
-          <span className="group-settings-back-icon">←</span>
+    <div className="group-settings-screen">
+      {/* Header */}
+      <header className="settings-header">
+        <button className="back-btn" onClick={() => navigate(-1)}>
+          <ArrowLeft size={24} />
         </button>
         
-        <h1 className="group-settings-header-title">Group Settings</h1>
+        <h1>Group Settings</h1>
         
         <button 
-          className={`group-settings-header-save ${loading ? 'disabled' : ''}`}
+          className="save-btn"
           onClick={handleSaveChanges}
-          disabled={loading}
+          disabled={saving}
         >
-          {loading ? (
-            <div className="group-settings-spinner-small"></div>
-          ) : (
-            <span className="group-settings-save-text">Save</span>
-          )}
+          {saving ? <Loader2 className="spinner" size={20} /> : <><Save size={20} /><span>Save</span></>}
         </button>
-      </div>
+      </header>
 
-      <div className="group-settings-content">
-        {/* Cover Image Section */}
-        <div className="group-settings-section">
-          <h2 className="group-settings-section-title">Cover Image</h2>
-          <div className="group-settings-image-container" onClick={handleImageClick}>
-            {selectedImage ? (
-              <img src={selectedImage} alt="Group cover" className="group-settings-cover-image" />
+      <div className="settings-content">
+        {/* Cover Image */}
+        <div className="section">
+          <h2>Cover Image</h2>
+          <div className="image-container">
+            {imagePreview ? (
+              <img src={imagePreview} alt="Cover" className="cover-image" />
             ) : (
-              <div className="group-settings-placeholder-image">
-                <span className="group-settings-camera-icon">📷</span>
-                <span className="group-settings-placeholder-text">Tap to add cover image</span>
+              <div className="placeholder-image">
+                <Camera size={40} />
+                <span>Tap to add cover image</span>
               </div>
             )}
-            <div className="group-settings-image-overlay">
-              <span className="group-settings-overlay-icon">📷</span>
+            <div className="image-overlay">
+              <label>
+                <Camera size={24} />
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImagePicker}
+                  style={{ display: 'none' }}
+                />
+              </label>
             </div>
           </div>
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleImageSelect}
-            accept="image/*"
-            style={{ display: 'none' }}
-          />
+          {imagePreview && (
+            <button className="remove-image-btn" onClick={handleRemoveImage}>
+              <Trash2 size={16} />
+              <span>Remove Image</span>
+            </button>
+          )}
         </div>
 
-        {/* Basic Information Section */}
-        <div className="group-settings-section">
-          <h2 className="group-settings-section-title">Basic Information</h2>
+        {/* Basic Information */}
+        <div className="section">
+          <h2>Basic Information</h2>
           
-          <div className="group-settings-input-group">
-            <label className="group-settings-input-label">Group Name *</label>
+          <div className="input-group">
+            <label>Group Name *</label>
             <input
               type="text"
-              className="group-settings-text-input"
               value={formData.name}
               onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
               placeholder="Enter group name"
@@ -308,10 +294,9 @@ const GroupSettingsScreen = () => {
             />
           </div>
 
-          <div className="group-settings-input-group">
-            <label className="group-settings-input-label">Description</label>
+          <div className="input-group">
+            <label>Description</label>
             <textarea
-              className="group-settings-textarea"
               value={formData.description}
               onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
               placeholder="Describe your group"
@@ -320,22 +305,39 @@ const GroupSettingsScreen = () => {
             />
           </div>
 
-          <div className="group-settings-input-group">
-            <label className="group-settings-input-label">Category</label>
+          <div className="input-group">
+            <label>Category</label>
             <button
+              className="category-button"
+              onClick={() => setShowCategoryModal(!showCategoryModal)}
               type="button"
-              className="group-settings-category-button"
-              onClick={() => setShowCategoryModal(true)}
             >
-              <span className="group-settings-category-button-text">{formData.category}</span>
-              <span className="group-settings-category-arrow">▼</span>
+              <span>{formData.category}</span>
+              {showCategoryModal ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
             </button>
+            {showCategoryModal && (
+              <div className="category-dropdown">
+                {CATEGORIES.map((category) => (
+                  <button
+                    key={category}
+                    className={`category-item ${formData.category === category ? 'selected' : ''}`}
+                    onClick={() => {
+                      setFormData(prev => ({ ...prev, category }));
+                      setShowCategoryModal(false);
+                    }}
+                    type="button"
+                  >
+                    <span>{category}</span>
+                    {formData.category === category && <Check size={20} />}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
-          <div className="group-settings-input-group">
-            <label className="group-settings-input-label">Group Rules</label>
+          <div className="input-group">
+            <label>Group Rules</label>
             <textarea
-              className="group-settings-textarea"
               value={formData.rules}
               onChange={(e) => setFormData(prev => ({ ...prev, rules: e.target.value }))}
               placeholder="Set rules for your group (optional)"
@@ -345,18 +347,16 @@ const GroupSettingsScreen = () => {
           </div>
         </div>
 
-        {/* Privacy & Permissions Section */}
-        <div className="group-settings-section">
-          <h2 className="group-settings-section-title">Privacy & Permissions</h2>
+        {/* Privacy & Permissions */}
+        <div className="section">
+          <h2>Privacy & Permissions</h2>
           
-          <div className="group-settings-setting-item">
-            <div className="group-settings-setting-info">
-              <h3 className="group-settings-setting-title">Private Group</h3>
-              <p className="group-settings-setting-description">
-                Only members can see posts and join by invitation
-              </p>
+          <div className="setting-item">
+            <div className="setting-info">
+              <h3>Private Group</h3>
+              <p>Only members can see posts and join by invitation</p>
             </div>
-            <label className="group-settings-switch">
+            <label className="toggle-switch">
               <input
                 type="checkbox"
                 checked={formData.isPrivate}
@@ -366,83 +366,109 @@ const GroupSettingsScreen = () => {
                   requireApproval: e.target.checked ? prev.requireApproval : false
                 }))}
               />
-              <span className="group-settings-switch-slider"></span>
+              <span className="slider"></span>
             </label>
           </div>
 
           {formData.isPrivate && (
-            <div className="group-settings-setting-item">
-              <div className="group-settings-setting-info">
-                <h3 className="group-settings-setting-title">Require Approval</h3>
-                <p className="group-settings-setting-description">
-                  New members need admin approval to join
-                </p>
+            <div className="setting-item">
+              <div className="setting-info">
+                <h3>Require Approval</h3>
+                <p>New members need admin approval to join</p>
               </div>
-              <label className="group-settings-switch">
+              <label className="toggle-switch">
                 <input
                   type="checkbox"
                   checked={formData.requireApproval}
                   onChange={(e) => setFormData(prev => ({ ...prev, requireApproval: e.target.checked }))}
                 />
-                <span className="group-settings-switch-slider"></span>
+                <span className="slider"></span>
               </label>
             </div>
           )}
 
-          <div className="group-settings-setting-item">
-            <div className="group-settings-setting-info">
-              <h3 className="group-settings-setting-title">Allow Member Posts</h3>
-              <p className="group-settings-setting-description">
-                Members can share recipes in this group
-              </p>
+          <div className="setting-item">
+            <div className="setting-info">
+              <h3>Allow Member Posts</h3>
+              <p>Members can share recipes in this group</p>
             </div>
-            <label className="group-settings-switch">
+            <label className="toggle-switch">
               <input
                 type="checkbox"
                 checked={formData.allowMemberPosts}
                 onChange={(e) => setFormData(prev => ({ ...prev, allowMemberPosts: e.target.checked }))}
               />
-              <span className="group-settings-switch-slider"></span>
+              <span className="slider"></span>
             </label>
           </div>
 
-          <div className="group-settings-setting-item">
-            <div className="group-settings-setting-info">
-              <h3 className="group-settings-setting-title">Allow Invitations</h3>
-              <p className="group-settings-setting-description">
-                Members can invite others to join the group
-              </p>
+          <div className="setting-item">
+            <div className="setting-info">
+              <h3>Allow Invitations</h3>
+              <p>Members can invite others to join the group</p>
             </div>
-            <label className="group-settings-switch">
+            <label className="toggle-switch">
               <input
                 type="checkbox"
                 checked={formData.allowInvites}
                 onChange={(e) => setFormData(prev => ({ ...prev, allowInvites: e.target.checked }))}
               />
-              <span className="group-settings-switch-slider"></span>
+              <span className="slider"></span>
             </label>
           </div>
         </div>
 
-        {/* Danger Zone Section */}
+        {/* Danger Zone */}
         {isCreator && (
-          <div className="group-settings-section group-settings-danger-section">
-            <h2 className="group-settings-section-title group-settings-danger-title">Danger Zone</h2>
+          <div className="section danger-section">
+            <h2 className="danger-title">Danger Zone</h2>
             
             <button
-              className="group-settings-delete-button"
+              className="delete-button"
               onClick={handleDeleteGroup}
-              disabled={loading}
+              disabled={saving}
             >
-              <span className="group-settings-delete-icon">🗑️</span>
-              <span className="group-settings-delete-text">Delete Group</span>
+              <Trash2 size={20} />
+              <span>Delete Group</span>
             </button>
           </div>
         )}
       </div>
 
-      {renderCategoryModal()}
-      {renderDeleteConfirmModal()}
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="modal-overlay" onClick={() => setShowDeleteConfirm(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <AlertCircle size={48} color="var(--danger)" />
+              <h3>Delete Group</h3>
+            </div>
+            
+            <p className="modal-text">
+              Are you sure you want to delete "{groupData?.name}"?
+            </p>
+            <p className="modal-subtext">
+              This action cannot be undone. All posts, members, and data will be permanently lost.
+            </p>
+            
+            <div className="modal-actions">
+              <button
+                className="cancel-btn"
+                onClick={() => setShowDeleteConfirm(false)}
+              >
+                Cancel
+              </button>
+              
+              <button
+                className="confirm-delete-btn"
+                onClick={confirmDeleteGroup}
+              >
+                Delete Group
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
