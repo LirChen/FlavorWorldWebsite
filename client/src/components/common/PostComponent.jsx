@@ -16,6 +16,7 @@ import './PostComponent.css';
 import { recipeService } from '../../services/recipeService';
 import { groupService } from '../../services/groupService';
 import { useAuth } from '../../services/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import UserAvatar from './UserAvatar';
 
 const FLAVORWORLD_COLORS = {
@@ -52,6 +53,8 @@ const PostComponent = ({
   const [newComment, setNewComment] = useState('');
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const [isSubmittingLike, setIsSubmittingLike] = useState(false);
+
+  const navigate = useNavigate();
 
   useEffect(() => {
     setLocalLikes(safePost.likes || []);
@@ -177,6 +180,18 @@ const PostComponent = ({
     }
   };
 
+  const handleEdit = () => {
+    navigate('/edit-post', {
+      state: {
+        postId: safePost._id || safePost.id,
+        postData: safePost,
+        isGroupPost: isActualGroupPost,
+        groupId: effectiveGroupId,
+        groupName: safePost.group?.name || safePost.groupName
+      }
+    });
+  };
+
   const handleDelete = () => {
     setShowOptionsMenu(false);
     if (window.confirm('Are you sure you want to delete this recipe?')) {
@@ -207,7 +222,11 @@ const PostComponent = ({
             </button>
             {showOptionsMenu && (
               <div className="options-menu">
-                <button className="option-item" onClick={handleDelete}>
+                <button className="option-item" onClick={handleEdit}>
+                  <Edit2 size={16} />
+                  <span>Edit</span>
+                </button>
+                <button className="option-item delete" onClick={handleDelete}>
                   <Trash2 size={16} />
                   <span>Delete</span>
                 </button>
@@ -237,7 +256,15 @@ const PostComponent = ({
 
         {/* Post Image */}
         {safePost.image && (
-          <div className="post-image-container" onClick={() => setShowFullRecipe(true)}>
+          <div 
+            className="post-image-container" 
+            onClick={() => navigate(`/post/${postId}`, {
+              state: { 
+                groupId: effectiveGroupId, 
+                isGroupPost: isActualGroupPost 
+              }
+            })}
+          >
             <img src={safePost.image} alt={safePost.title} />
           </div>
         )}
@@ -252,8 +279,28 @@ const PostComponent = ({
       {/* Post Actions */}
       <div className="post-actions">
         <div className="post-stats">
-          <span>{localLikes.length} likes</span>
-          <span>{localComments.length} comments</span>
+          <button 
+            className="stat-btn"
+            onClick={() => navigate(`/post/${postId}`, {
+              state: { 
+                groupId: effectiveGroupId, 
+                isGroupPost: isActualGroupPost 
+              }
+            })}
+          >
+            {localLikes.length} likes
+          </button>
+          <button 
+            className="stat-btn"
+            onClick={() => navigate(`/post/${postId}`, {
+              state: { 
+                groupId: effectiveGroupId, 
+                isGroupPost: isActualGroupPost 
+              }
+            })}
+          >
+            {localComments.length} comments
+          </button>
         </div>
 
         <div className="post-actions-buttons">

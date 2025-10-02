@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  X, 
-  Clock, 
-  Users, 
-  AlertCircle, 
-  Loader 
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import {
+  X,
+  Clock,
+  Users as UsersIcon,
+  Loader2,
+  Heart,
+  MessageCircle,
+  Share2
 } from 'lucide-react';
 import './PostModalScreen.css';
 import { useAuth } from '../../services/AuthContext';
@@ -12,18 +15,17 @@ import { recipeService } from '../../services/recipeService';
 import { groupService } from '../../services/groupService';
 import UserAvatar from '../../components/common/UserAvatar';
 
-const PostModalScreen = ({ route, navigation, onClose }) => {
+const PostModalScreen = () => {
+  const navigate = useNavigate();
+  const { postId } = useParams();
+  const location = useLocation();
   const { currentUser } = useAuth();
-  const { 
-    postId, 
-    groupId, 
-    isGroupPost = false, 
-    postTitle = 'Recipe',
-    postImage 
-  } = route.params || {};
+  
+  const { groupId, isGroupPost = false } = location.state || {};
 
   const [post, setPost] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('details'); // 'details', 'likes', 'comments'
 
   const formatTime = (minutes) => {
     if (!minutes || isNaN(minutes)) return '0m';
@@ -39,20 +41,7 @@ const PostModalScreen = ({ route, navigation, onClose }) => {
 
   useEffect(() => {
     loadPost();
-  }, []);
-
-  useEffect(() => {
-    const handleEscKey = (event) => {
-      if (event.key === 'Escape') {
-        handleClose();
-      }
-    };
-
-    document.addEventListener('keydown', handleEscKey);
-    return () => {
-      document.removeEventListener('keydown', handleEscKey);
-    };
-  }, []);
+  }, [postId]);
 
   const loadPost = async () => {
     try {
@@ -60,7 +49,6 @@ const PostModalScreen = ({ route, navigation, onClose }) => {
       let result;
 
       if (isGroupPost && groupId) {
-        console.log('Loading group post:', postId);
         const groupPostsResult = await groupService.getGroupPosts(groupId, currentUser?.id);
         if (groupPostsResult.success) {
           const foundPost = groupPostsResult.data.find(p => 
@@ -75,7 +63,6 @@ const PostModalScreen = ({ route, navigation, onClose }) => {
           result = groupPostsResult;
         }
       } else {
-        console.log('Loading regular post:', postId);
         result = await recipeService.getRecipeById(postId);
       }
 
@@ -83,38 +70,28 @@ const PostModalScreen = ({ route, navigation, onClose }) => {
         setPost(result.data);
       } else {
         alert(result.message || 'Failed to load post');
-        handleClose();
+        navigate(-1);
       }
     } catch (error) {
       console.error('Load post error:', error);
       alert('Failed to load post');
-      handleClose();
+      navigate(-1);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleClose = () => {
-    if (onClose) {
-      onClose();
-    } else if (navigation) {
-      navigation.goBack();
-    }
-  };
-
-  const handleBackdropClick = (e) => {
-    if (e.target === e.currentTarget) {
-      handleClose();
-    }
+  const handleUserClick = (userId) => {
+    navigate(`/profile?userId=${userId}`);
   };
 
   if (loading) {
     return (
-      <div className="post-modal-overlay" onClick={handleBackdropClick}>
-        <div className="post-modal-container">
-          <div className="loading-container">
-            <Loader size={48} className="loading-spinner" />
-            <p className="loading-text">Loading recipe...</p>
+      <div className="post-modal-screen">
+        <div className="modal-overlay">
+          <div className="modal-container loading">
+            <Loader2 className="spinner" size={40} />
+            <p>Loading recipe...</p>
           </div>
         </div>
       </div>
@@ -123,15 +100,11 @@ const PostModalScreen = ({ route, navigation, onClose }) => {
 
   if (!post) {
     return (
-      <div className="post-modal-overlay" onClick={handleBackdropClick}>
-        <div className="post-modal-container">
-          <div className="error-container">
-            <AlertCircle size={80} />
-            <h2 className="error-title">Recipe Not Found</h2>
-            <button 
-              className="back-button"
-              onClick={handleClose}
-            >
+      <div className="post-modal-screen">
+        <div className="modal-overlay">
+          <div className="modal-container error">
+            <h2>Recipe Not Found</h2>
+            <button className="close-btn" onClick={() => navigate(-1)}>
               Go Back
             </button>
           </div>
@@ -141,110 +114,186 @@ const PostModalScreen = ({ route, navigation, onClose }) => {
   }
 
   return (
-    <div className="post-modal-overlay" onClick={handleBackdropClick}>
-      <div className="post-modal-container" onClick={e => e.stopPropagation()}>
-        <div className="header">
-          <h1 className="header-title">
-            {post.title || 'Recipe'}
-          </h1>
-          <button
-            className="close-button"
-            onClick={handleClose}
-            aria-label="Close modal"
-          >
-            <X size={28} />
-          </button>
-        </div>
+    <div className="post-modal-screen">
+      <div className="modal-overlay" onClick={() => navigate(-1)}>
+        <div className="modal-container" onClick={(e) => e.stopPropagation()}>
+          {/* Header */}
+          <div className="modal-header">
+            <h2>{post.title || 'Recipe'}</h2>
+            <button className="close-icon-btn" onClick={() => navigate(-1)}>
+              <X size={28} />
+            </button>
+          </div>
 
-        <div className="scroll-container">
-          {post.image && (
-            <img 
-              src={post.image} 
-              alt={post.title || 'Recipe'} 
-              className="recipe-image" 
-            />
-          )}
+          {/* Tabs */}
+          <div className="modal-tabs">
+            <button
+              className={`tab ${activeTab === 'details' ? 'active' : ''}`}
+              onClick={() => setActiveTab('details')}
+            >
+              Details
+            </button>
+            <button
+              className={`tab ${activeTab === 'likes' ? 'active' : ''}`}
+              onClick={() => setActiveTab('likes')}
+            >
+              Likes ({post.likes?.length || 0})
+            </button>
+            <button
+              className={`tab ${activeTab === 'comments' ? 'active' : ''}`}
+              onClick={() => setActiveTab('comments')}
+            >
+              Comments ({post.comments?.length || 0})
+            </button>
+          </div>
 
-          <div className="recipe-content">
-            <div className="meta-row">
-              <div className="meta-item">
-                <Clock size={16} />
-                <span className="meta-text">{formatTime(post.prepTime)}</span>
-              </div>
-              <div className="meta-item">
-                <Users size={16} />
-                <span className="meta-text">{post.servings || 0} servings</span>
-              </div>
-              <div className="meta-item">
-                <span className="category-tag">{post.category || 'General'}</span>
-              </div>
-              {post.meatType && (
-                <div className="meta-item">
-                  <span className="meat-type-tag">{post.meatType}</span>
-                </div>
-              )}
-            </div>
-
-            <div className="author-info">
-              <UserAvatar
-                uri={post.userAvatar}
-                name={post.userName || 'Chef'}
-                size={40}
-              />
-              <div className="author-details">
-                <h3 className="author-name">{post.userName || 'Anonymous Chef'}</h3>
-                {isGroupPost && (
-                  <p className="group-name">from group</p>
+          {/* Content */}
+          <div className="modal-body">
+            {activeTab === 'details' && (
+              <div className="details-tab">
+                {/* Image */}
+                {post.image && (
+                  <div className="recipe-image-container">
+                    <img src={post.image} alt={post.title} />
+                  </div>
                 )}
-              </div>
-            </div>
 
-            {post.description && (
-              <div className="description-section">
-                <p className="description">
-                  {post.description}
-                </p>
+                {/* Video */}
+                {post.video && !post.image && (
+                  <div className="recipe-video-container">
+                    <video src={post.video} controls />
+                  </div>
+                )}
+
+                {/* Meta Info */}
+                <div className="recipe-meta">
+                  <div className="meta-item">
+                    <Clock size={18} />
+                    <span>{formatTime(post.prepTime)}</span>
+                  </div>
+                  <div className="meta-item">
+                    <UsersIcon size={18} />
+                    <span>{post.servings || 0} servings</span>
+                  </div>
+                  <div className="meta-tag">{post.category || 'General'}</div>
+                  <div className="meta-tag">{post.meatType || 'Mixed'}</div>
+                </div>
+
+                {/* Author */}
+                <div 
+                  className="recipe-author"
+                  onClick={() => handleUserClick(post.userId)}
+                >
+                  <UserAvatar
+                    uri={post.userAvatar}
+                    name={post.userName || 'Chef'}
+                    size={40}
+                  />
+                  <div className="author-details">
+                    <h4>{post.userName || 'Anonymous Chef'}</h4>
+                    {isGroupPost && (
+                      <span className="group-badge">Group Recipe</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Description */}
+                {post.description && (
+                  <div className="recipe-section">
+                    <h3>Description</h3>
+                    <p>{post.description}</p>
+                  </div>
+                )}
+
+                {/* Ingredients */}
+                {post.ingredients && (
+                  <div className="recipe-section">
+                    <h3>Ingredients</h3>
+                    <p className="recipe-text">{post.ingredients}</p>
+                  </div>
+                )}
+
+                {/* Instructions */}
+                {post.instructions && (
+                  <div className="recipe-section">
+                    <h3>Instructions</h3>
+                    <p className="recipe-text">{post.instructions}</p>
+                  </div>
+                )}
+
+                {/* Stats */}
+                <div className="recipe-stats">
+                  <div className="stat-item">
+                    <Heart size={20} />
+                    <span>{post.likes?.length || 0} likes</span>
+                  </div>
+                  <div className="stat-item">
+                    <MessageCircle size={20} />
+                    <span>{post.comments?.length || 0} comments</span>
+                  </div>
+                </div>
               </div>
             )}
 
-            <div className="section">
-              <h2 className="section-title">Ingredients</h2>
-              <div className="section-content">
-                {post.ingredients ? (
-                  <pre className="formatted-text">{post.ingredients}</pre>
+            {activeTab === 'likes' && (
+              <div className="likes-tab">
+                {post.likes?.length > 0 ? (
+                  <div className="likes-list">
+                    {post.likes.map((userId, index) => (
+                      <div
+                        key={userId || index}
+                        className="like-item"
+                        onClick={() => handleUserClick(userId)}
+                      >
+                        <UserAvatar
+                          uri={null}
+                          name="User"
+                          size={40}
+                        />
+                        <span>User {index + 1}</span>
+                      </div>
+                    ))}
+                  </div>
                 ) : (
-                  <p className="no-content">No ingredients listed</p>
+                  <div className="empty-state">
+                    <Heart size={60} />
+                    <p>No likes yet</p>
+                    <span>Be the first to like this recipe!</span>
+                  </div>
                 )}
               </div>
-            </div>
+            )}
 
-            <div className="section">
-              <h2 className="section-title">Instructions</h2>
-              <div className="section-content">
-                {post.instructions ? (
-                  <pre className="formatted-text">{post.instructions}</pre>
+            {activeTab === 'comments' && (
+              <div className="comments-tab">
+                {post.comments?.length > 0 ? (
+                  <div className="comments-list">
+                    {post.comments.map((comment) => (
+                      <div key={comment._id} className="comment-item">
+                        <div
+                          className="comment-header"
+                          onClick={() => handleUserClick(comment.userId)}
+                        >
+                          <UserAvatar
+                            uri={comment.userAvatar}
+                            name={comment.userName}
+                            size={36}
+                          />
+                          <div className="comment-author">
+                            <h5>{comment.userName}</h5>
+                            <span>{new Date(comment.createdAt).toLocaleDateString()}</span>
+                          </div>
+                        </div>
+                        <p className="comment-text">{comment.text}</p>
+                      </div>
+                    ))}
+                  </div>
                 ) : (
-                  <p className="no-content">No instructions provided</p>
-                )}
-              </div>
-            </div>
-
-            {(post.createdAt || post.likes || post.comments) && (
-              <div className="additional-info">
-                {post.createdAt && (
-                  <p className="created-date">
-                    Created: {new Date(post.createdAt).toLocaleDateString()}
-                  </p>
-                )}
-                {post.likes && (
-                  <p className="stats">
-                    {post.likes.length || 0} likes
-                  </p>
-                )}
-                {post.comments && (
-                  <p className="stats">
-                    {post.comments.length || 0} comments
-                  </p>
+                  <div className="empty-state">
+                    <MessageCircle size={60} />
+                    <p>No comments yet</p>
+                    <span>Be the first to comment!</span>
+                  </div>
                 )}
               </div>
             )}
