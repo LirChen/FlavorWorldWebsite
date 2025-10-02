@@ -13,6 +13,7 @@ import PostModalScreen from '../pages/posts/PostModalScreen';
 import CreateGroupComponent from '../pages/Groups/CreateGroupComponent';
 import GroupsScreen from '../pages/Groups/GroupsScreen';
 import ProfileScreen from '../pages/Profile/ProfileScreen';
+import EditProfileScreen from '../pages/Profile/EditProfileScreen';
 import GroupDetailsScreen from '../pages/Groups/GroupDetailsScreen';
 import GroupAdminRequestsScreen from '../pages/Groups/GroupAdminRequestsScreen';
 import ChatConversationScreen from '../pages/Chats/ChatConversationScreen';
@@ -36,7 +37,8 @@ export default function HomeNavigator() {
       
       {/* Profile Routes */}
       <Route path="/profile" element={<ProfileScreen />} />
-      <Route path="/user-statistics" element={<UserStatisticsScreen />} />
+      <Route path="/profile/edit" element={<EditProfileScreen />} />
+      <Route path="/profile/statistics" element={<UserStatisticsScreen />} />
 
       {/* Post Routes */}
       <Route path="/edit-post" element={<EditPostScreen />} />

@@ -1,39 +1,43 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ArrowLeft,
-  MessageCircle,
-  MoreHorizontal,
-  Edit3,
   Settings,
+  MessageCircle,
+  Calendar,
+  MoreVertical,
+  UserPlus,
+  UserMinus,
+  Flag,
+  Ban,
+  Loader2,
   Users,
-  BarChart3,
+  Heart,
   Grid,
   User,
-  ChevronRight,
-  Plus,
-  Check,
-  Loader,
-  Camera,
-  Lock,
-  AlertTriangle,
-  X,
-  Shield,
+  BarChart3,
+  Trash2,
   HelpCircle,
   Info,
-  Trash2
+  Shield,
+  X
 } from 'lucide-react';
 import './ProfileScreen.css';
-import UserAvatar from '../../components/common/UserAvatar';
 import { useAuth } from '../../services/AuthContext';
+import UserAvatar from '../../components/common/UserAvatar';
+import PostComponent from '../../components/common/PostComponent';
 import { recipeService } from '../../services/recipeService';
-import { userService } from '../../services/UserService';
+import { userService } from '../../services/userService';
 import { chatService } from '../../services/chatServices';
 import { statisticsService } from '../../services/statisticsService';
 import { groupService } from '../../services/groupService';
-import PostComponent from '../../components/common/PostComponent';
 
-const ProfileScreen = ({ route, navigation }) => {
+const ProfileScreen = () => {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { currentUser, logout } = useAuth();
+  const userId = searchParams.get('userId') || currentUser?.id || currentUser?._id;
+  
   const [profileUser, setProfileUser] = useState(null);
   const [userPosts, setUserPosts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -52,8 +56,8 @@ const ProfileScreen = ({ route, navigation }) => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deletePassword, setDeletePassword] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showOptionsMenu, setShowOptionsMenu] = useState(false);
 
-  const userId = route?.params?.userId || currentUser?.id || currentUser?._id;
   const isOwnProfile = userId === (currentUser?.id || currentUser?._id);
 
   useEffect(() => {
@@ -65,25 +69,20 @@ const ProfileScreen = ({ route, navigation }) => {
     try {
       if (isOwnProfile) {
         setProfileUser(currentUser);
-        console.log('Loading own profile');
       } else {
-        console.log('Loading user profile');
         const userResult = await userService.getUserProfile(userId);
         
         if (userResult.success) {
           setProfileUser(userResult.data);
-          console.log('User profile loaded successfully');
-          
           await loadFollowStatus();
         } else {
           alert('Failed to load user profile');
-          navigation.goBack();
+          navigate(-1);
           return;
         }
       }
 
       await loadUserPosts();
-      
     } catch (error) {
       alert('Failed to load profile');
     } finally {
@@ -95,8 +94,6 @@ const ProfileScreen = ({ route, navigation }) => {
     if (isOwnProfile || !currentUser?.id) return;
     
     try {
-      console.log('Loading follow status');
-      
       const result = await chatService.getFollowStatus(
         userId, 
         currentUser.id || currentUser._id
@@ -108,19 +105,14 @@ const ProfileScreen = ({ route, navigation }) => {
           ...prev,
           followersCount: result.data.followersCount
         }));
-        
-        console.log('Follow status loaded successfully');
       }
     } catch (error) {
-      console.error('Error loading follow status:', error);
+      console.error('Failed to load follow status:', error);
     }
   };
 
   const loadUserGroupPosts = async () => {
     try {
-      console.log('Loading user group posts with privacy filter');
-      console.log(`Loading for user: ${userId}, Viewer: ${currentUser?.id || currentUser?._id}, isOwnProfile: ${isOwnProfile}`);
-      
       const groupsResult = await groupService.getAllGroups(userId);
       
       if (!groupsResult.success) {
@@ -131,22 +123,10 @@ const ProfileScreen = ({ route, navigation }) => {
         groupService.isMember(group, userId)
       );
 
-      console.log(`User is member of ${userGroups.length} groups`);
-      
       let allGroupPosts = [];
       
       for (const group of userGroups) {
         try {
-          if (group.isPrivate && !isOwnProfile) {
-            const viewerUserId = currentUser?.id || currentUser?._id;
-            const isViewerMember = groupService.isMember(group, viewerUserId);
-            
-            if (!isViewerMember) {
-              console.log(`Skipping private group ${group.name} - viewer is not a member`);
-              continue;
-            }
-          }
-          
           const groupPostsResult = await groupService.getGroupPosts(group._id, userId);
           
           if (groupPostsResult.success && groupPostsResult.data) {
@@ -159,37 +139,28 @@ const ProfileScreen = ({ route, navigation }) => {
             const postsWithGroupInfo = userPostsInGroup.map(post => ({
               ...post,
               groupName: group.name,
-              groupId: group._id,
-              isPrivateGroup: group.isPrivate
+              groupId: group._id
             }));
             
             allGroupPosts = [...allGroupPosts, ...postsWithGroupInfo];
-            console.log(`Found ${userPostsInGroup.length} posts in group ${group.name}`);
           }
         } catch (groupPostError) {
-          console.log(`Could not load posts for group ${group.name}:`, groupPostError);
           continue;
         }
       }
 
-      console.log(`Total accessible group posts found: ${allGroupPosts.length}`);
-      
       return {
         success: true,
         data: allGroupPosts
       };
       
     } catch (error) {
-      console.error('Error loading user group posts:', error);
       return { success: false, data: [] };
     }
   };
 
   const loadUserPosts = async () => {
     try {
-      console.log('Loading user posts including group posts with privacy checks');
-      console.log(`Loading for user: ${userId}, Viewer: ${currentUser?.id || currentUser?._id}, isOwnProfile: ${isOwnProfile}`);
-      
       const regularPostsResult = await recipeService.getAllRecipes();
       let allPosts = [];
       
@@ -207,7 +178,6 @@ const ProfileScreen = ({ route, navigation }) => {
         }));
         
         allPosts = [...markedRegularPosts];
-        console.log('Regular posts loaded:', markedRegularPosts.length);
       }
 
       try {
@@ -220,13 +190,10 @@ const ProfileScreen = ({ route, navigation }) => {
           }));
           
           allPosts = [...allPosts, ...userGroupPosts];
-          console.log('Accessible group posts loaded:', userGroupPosts.length);
         }
       } catch (groupError) {
-        console.log('Could not load group posts:', groupError);
+        console.error('Could not load group posts:', groupError);
       }
-
-      console.log('Total user posts loaded (with privacy filtering):', allPosts.length);
 
       const sortedPosts = allPosts.sort((a, b) => 
         new Date(b.createdAt) - new Date(a.createdAt)
@@ -236,15 +203,12 @@ const ProfileScreen = ({ route, navigation }) => {
       await calculateUserStatistics(sortedPosts);
       
     } catch (error) {
-      console.error('Error loading user posts:', error);
-      alert('Failed to load posts');
+      console.error('Failed to load user posts:', error);
     }
   };
 
   const calculateUserStatistics = async (posts) => {
     try {
-      console.log('Calculating user statistics using statistics service');
-      
       const statsData = statisticsService.processRealUserData(posts, userId);
       
       let followersCount = 0;
@@ -252,12 +216,8 @@ const ProfileScreen = ({ route, navigation }) => {
         const followersResult = await statisticsService.getFollowersGrowth(userId);
         if (followersResult.success && followersResult.data) {
           followersCount = followersResult.currentFollowersCount || 0;
-          console.log('Real followers data retrieved successfully');
-        } else {
-          console.log('No followers data available from server');
         }
       } catch (followersError) {
-        console.log('Could not fetch followers data from server');
         followersCount = 0;
       }
 
@@ -265,12 +225,6 @@ const ProfileScreen = ({ route, navigation }) => {
         postsCount: statsData.totalPosts,
         likesCount: statsData.totalLikes,
         followersCount: followersCount
-      });
-
-      console.log('Statistics calculated:', {
-        posts: statsData.totalPosts,
-        likes: statsData.totalLikes,
-        followers: followersCount
       });
 
     } catch (error) {
@@ -291,8 +245,6 @@ const ProfileScreen = ({ route, navigation }) => {
     
     setIsFollowLoading(true);
     try {
-      console.log('Toggling follow status');
-      
       const result = await chatService.toggleFollow(
         userId,
         currentUser.id || currentUser._id,
@@ -307,7 +259,6 @@ const ProfileScreen = ({ route, navigation }) => {
         }));
         
         alert(isFollowing ? 'Unfollowed successfully' : 'Following successfully!');
-        console.log('Follow status updated successfully');
       } else {
         alert(result.message || 'Failed to update follow status');
       }
@@ -332,18 +283,17 @@ const ProfileScreen = ({ route, navigation }) => {
     setStartingChat(true);
 
     try {
-      console.log('Starting chat with user');
-      
       const result = await chatService.getOrCreatePrivateChat(userId);
       
       if (result.success) {
-        navigation.navigate('ChatConversation', {
-          chatId: result.data._id,
-          otherUser: {
-            userId: userId,
-            userName: profileUser.fullName || profileUser.name || 'Unknown User',
-            UserAvatar: profileUser.avatar,
-            isOnline: false
+        navigate(`/chat/${result.data._id}`, {
+          state: {
+            otherUser: {
+              userId: userId,
+              userName: profileUser.fullName || profileUser.name || 'Unknown User',
+              userAvatar: profileUser.avatar,
+              isOnline: false
+            }
           }
         });
       } else {
@@ -356,48 +306,10 @@ const ProfileScreen = ({ route, navigation }) => {
     }
   };
 
-  const handleShowFollowers = async () => {
-    try {
-      navigation.navigate('FollowersList', {
-        userId: userId,
-        title: `${profileUser?.fullName || 'User'}'s Followers`,
-        listType: 'followers'
-      });
-    } catch (error) {
-      console.error('Error showing followers:', error);
-    }
-  };
-
-  const handleViewStatistics = () => {
-    console.log('Navigating to UserStatistics');
-    
-    navigation.navigate('UserStatistics', {
-      currentUser: profileUser,
-      userPosts: userPosts,
-      userId: userId
-    });
-  };
-
-  const handleRefreshData = useCallback(() => {
-    loadUserPosts();
-  }, [userId]);
-
-  const handleEditProfile = () => {
-    navigation.navigate('EditProfile');
-  };
-
-  const handleMyGroups = () => {
-    navigation.navigate('Groups');
-  };
-
-  const handleSettings = () => {
-    setShowSettingsModal(true);
-  };
-
   const handleDeleteAccount = () => {
     setShowSettingsModal(false);
     
-    if (confirm('Are you absolutely sure you want to delete your account? This action cannot be undone and will permanently remove all your recipes, chats, and data.')) {
+    if (window.confirm('Are you absolutely sure you want to delete your account? This action cannot be undone and will permanently remove all your recipes, chats, and data.')) {
       setShowDeleteModal(true);
     }
   };
@@ -411,8 +323,6 @@ const ProfileScreen = ({ route, navigation }) => {
     setIsDeleting(true);
 
     try {
-      console.log('Attempting to delete user account');
-      
       const result = await userService.deleteUserAccount(userId, deletePassword);
       
       if (result.success) {
@@ -430,6 +340,10 @@ const ProfileScreen = ({ route, navigation }) => {
     }
   };
 
+  const handleRefreshData = useCallback(() => {
+    loadUserPosts();
+  }, [userId]);
+
   const getFilteredPosts = () => {
     switch (selectedTab) {
       case 'personal':
@@ -442,340 +356,319 @@ const ProfileScreen = ({ route, navigation }) => {
     }
   };
 
-  const renderProfileHeader = () => (
-    <div className="profile-header">
-      <div className="profile-image-container">
-        <UserAvatar
-          uri={profileUser?.avatar || profileUser?.userAvatar}
-          name={profileUser?.fullName || profileUser?.name}
-          size={120}
-        />
-      </div>
-
-      <div className="profile-info">
-        <h2 className="profile-name">
-          {profileUser?.fullName || profileUser?.name || 'Anonymous Chef'}
-        </h2>
-        
-        <p className="profile-email">
-          {profileUser?.email || 'No email'}
-        </p>
-
-        <p className="profile-bio">
-          {profileUser?.bio || 'Passionate about cooking and sharing delicious recipes!'}
-        </p>
-      </div>
-
-      <div className="stats-container">
-        <div className="stat-item">
-          <span className="stat-number">{stats.postsCount}</span>
-          <span className="stat-label">Recipes</span>
-        </div>
-        
-        <div className="stat-item">
-          <span className="stat-number">{stats.likesCount}</span>
-          <span className="stat-label">Total Likes</span>
-        </div>
-        
-        <div className="stat-item" onClick={handleShowFollowers}>
-          <span className="stat-number">{stats.followersCount}</span>
-          <span className="stat-label">Followers</span>
-        </div>
-      </div>
-
-      <div className="action-buttons">
-        {isOwnProfile ? (
-          <>
-            <button className="edit-button" onClick={handleEditProfile}>
-              <Edit3 size={18} />
-              <span>Edit Profile</span>
-            </button>
-            
-            <button className="settings-button" onClick={handleSettings}>
-              <Settings size={18} />
-            </button>
-          </>
-        ) : (
-          <>
-            <button 
-              className={`chat-button ${startingChat ? 'disabled' : ''}`}
-              onClick={handleStartChat}
-              disabled={startingChat}
-            >
-              {startingChat ? (
-                <Loader size={18} className="loading-spinner" />
-              ) : (
-                <MessageCircle size={18} />
-              )}
-              <span>{startingChat ? 'Starting...' : 'Chat'}</span>
-            </button>
-
-            <button 
-              className={`follow-button ${isFollowing ? 'following' : ''} ${isFollowLoading ? 'disabled' : ''}`}
-              onClick={handleFollowToggle}
-              disabled={isFollowLoading}
-            >
-              {isFollowLoading ? (
-                <Loader size={16} className="loading-spinner" />
-              ) : (
-                <>
-                  {isFollowing ? <Check size={16} /> : <Plus size={16} />}
-                  <span>{isFollowing ? 'Following' : 'Follow'}</span>
-                </>
-              )}
-            </button>
-          </>
-        )}
-      </div>
-
-      {isOwnProfile && (
-        <div className="quick-actions">
-          <div className="quick-action-item" onClick={handleMyGroups}>
-            <div className="quick-action-icon">
-              <Users size={20} />
-            </div>
-            <span className="quick-action-text">My Groups</span>
-            <ChevronRight size={16} />
-          </div>
-
-          <div className="quick-action-item" onClick={() => navigation.navigate('ChatList')}>
-            <div className="quick-action-icon">
-              <MessageCircle size={20} />
-            </div>
-            <span className="quick-action-text">My Chats</span>
-            <ChevronRight size={16} />
-          </div>
-
-          <div className="quick-action-item" onClick={handleViewStatistics}>
-            <div className="quick-action-icon">
-              <BarChart3 size={20} />
-            </div>
-            <span className="quick-action-text">My Statistics</span>
-            <ChevronRight size={16} />
-          </div>
-        </div>
-      )}
-    </div>
-  );
-
-  const renderTabBar = () => (
-    <div className="tab-bar">
-      <button
-        className={`tab ${selectedTab === 'posts' ? 'active' : ''}`}
-        onClick={() => setSelectedTab('posts')}
-      >
-        <Grid size={20} />
-        <span>All Recipes</span>
-      </button>
-
-      <button
-        className={`tab ${selectedTab === 'personal' ? 'active' : ''}`}
-        onClick={() => setSelectedTab('personal')}
-      >
-        <User size={20} />
-        <span>Personal</span>
-      </button>
-
-      <button
-        className={`tab ${selectedTab === 'groups' ? 'active' : ''}`}
-        onClick={() => setSelectedTab('groups')}
-      >
-        <Users size={20} />
-        <span>Groups</span>
-      </button>
-    </div>
-  );
-
-  const renderPost = (item, index) => (
-    <div key={item._id || item.id || index}>
-      {item.postSource === 'group' && (
-        <div className={`group-post-badge ${item.isPrivateGroup ? 'private' : ''}`}>
-          {item.isPrivateGroup ? <Lock size={14} /> : <Users size={14} />}
-          <span>
-            Posted in {item.groupName || 'Group'} 
-            {item.isPrivateGroup && ' (Private)'}
-          </span>
-        </div>
-      )}
-      
-      <PostComponent
-        post={item}
-        navigation={navigation}
-        onRefreshData={handleRefreshData}
-      />
-    </div>
-  );
-
-  const renderEmptyState = () => (
-    <div className="empty-state">
-      <Camera size={80} />
-      <h3 className="empty-title">
-        {selectedTab === 'posts' ? 'No Recipes Yet' : 
-         selectedTab === 'personal' ? 'No Personal Recipes' : 'No Group Recipes'}
-      </h3>
-      <p className="empty-subtitle">
-        {selectedTab === 'posts' && isOwnProfile ? 
-         'Share your first delicious recipe!' : 
-         selectedTab === 'personal' ? 'Create your first personal recipe!' :
-         'Join groups and start sharing recipes!'}
-      </p>
-    </div>
-  );
-
-  const renderSettingsModal = () => (
-    showSettingsModal && (
-      <div className="modal-overlay" onClick={() => setShowSettingsModal(false)}>
-        <div className="settings-modal" onClick={e => e.stopPropagation()}>
-          <div className="modal-header">
-            <h2 className="modal-title">Settings</h2>
-            <button onClick={() => setShowSettingsModal(false)}>
-              <X size={24} />
-            </button>
-          </div>
-
-          <div className="settings-list">
-            <div className="setting-item">
-              <Shield size={20} />
-              <span className="setting-text">Privacy</span>
-              <ChevronRight size={16} />
-            </div>
-
-            <div className="setting-item">
-              <HelpCircle size={20} />
-              <span className="setting-text">Help & Support</span>
-              <ChevronRight size={16} />
-            </div>
-
-            <div className="setting-item">
-              <Info size={20} />
-              <span className="setting-text">About</span>
-              <ChevronRight size={16} />
-            </div>
-
-            <div className="setting-divider" />
-
-            <div className="setting-item danger" onClick={handleDeleteAccount}>
-              <Trash2 size={20} />
-              <span className="setting-text">Delete Account</span>
-              <ChevronRight size={16} />
-            </div>
-          </div>
-        </div>
-      </div>
-    )
-  );
-
-  const renderDeleteModal = () => (
-    showDeleteModal && (
-      <div className="modal-overlay" onClick={() => setShowDeleteModal(false)}>
-        <div className="delete-modal" onClick={e => e.stopPropagation()}>
-          <div className="delete-modal-header">
-            <AlertTriangle size={48} />
-            <h2 className="delete-modal-title">Delete Account</h2>
-            <p className="delete-modal-subtitle">
-              This action cannot be undone. All your recipes, chats, and data will be permanently removed.
-            </p>
-          </div>
-
-          <div className="delete-modal-content">
-            <label className="password-label">Enter your password to confirm:</label>
-            <input
-              type="password"
-              className="password-input"
-              value={deletePassword}
-              onChange={(e) => setDeletePassword(e.target.value)}
-              placeholder="Your password"
-              disabled={isDeleting}
-            />
-          </div>
-
-          <div className="delete-modal-buttons">
-            <button 
-              className="cancel-button"
-              onClick={() => {
-                setShowDeleteModal(false);
-                setDeletePassword('');
-              }}
-              disabled={isDeleting}
-            >
-              Cancel
-            </button>
-
-            <button 
-              className={`delete-button ${isDeleting ? 'disabled' : ''}`}
-              onClick={confirmDeleteAccount}
-              disabled={isDeleting}
-            >
-              {isDeleting ? (
-                <Loader size={20} className="loading-spinner" />
-              ) : (
-                'Delete Forever'
-              )}
-            </button>
-          </div>
-        </div>
-      </div>
-    )
-  );
-
   if (loading) {
     return (
       <div className="profile-screen">
+        <header className="profile-header">
+          <button className="back-btn" onClick={() => navigate(-1)}>
+            <ArrowLeft size={24} />
+          </button>
+          <h1>Profile</h1>
+          <div className="header-placeholder" />
+        </header>
+        
         <div className="loading-container">
-          <Loader size={48} className="loading-spinner" />
-          <p className="loading-text">Loading profile...</p>
+          <Loader2 className="spinner" size={40} />
+          <p>Loading profile...</p>
         </div>
       </div>
     );
   }
 
+  const filteredPosts = getFilteredPosts();
+
   return (
     <div className="profile-screen">
-      <div className="header">
-        <button className="back-button" onClick={() => navigation.goBack()}>
+      {/* Header */}
+      <header className="profile-header">
+        <button className="back-btn" onClick={() => navigate(-1)}>
           <ArrowLeft size={24} />
         </button>
         
-        <h1 className="header-title">
-          {isOwnProfile ? 'My Profile' : profileUser?.fullName || 'Profile'}
-        </h1>
+        <h1>{isOwnProfile ? 'My Profile' : profileUser?.fullName || 'Profile'}</h1>
         
-        <div className="header-right">
-          {!isOwnProfile && (
-            <button 
-              className="header-chat-button"
-              onClick={handleStartChat}
-              disabled={startingChat}
-            >
-              {startingChat ? (
-                <Loader size={20} className="loading-spinner" />
-              ) : (
-                <MessageCircle size={20} />
-              )}
+        <div className="header-actions">
+          {isOwnProfile ? (
+            <button className="settings-btn" onClick={() => setShowSettingsModal(true)}>
+              <Settings size={20} />
+            </button>
+          ) : (
+            <button className="options-btn" onClick={() => setShowOptionsMenu(!showOptionsMenu)}>
+              <MoreVertical size={20} />
             </button>
           )}
-          
-          <button className="menu-button">
-            <MoreHorizontal size={24} />
+        </div>
+      </header>
+
+      {/* Options Menu for Other Users */}
+      {showOptionsMenu && (
+        <div className="options-menu">
+          <button onClick={() => { alert('Report submitted'); setShowOptionsMenu(false); }}>
+            <Flag size={18} />
+            <span>Report User</span>
+          </button>
+          <button onClick={() => { alert('User blocked'); setShowOptionsMenu(false); }} className="danger">
+            <Ban size={18} />
+            <span>Block User</span>
+          </button>
+          <button onClick={() => setShowOptionsMenu(false)}>
+            Cancel
           </button>
         </div>
-      </div>
+      )}
 
-      <div className="content">
-        {renderProfileHeader()}
-        {renderTabBar()}
-        
-        <div className="posts-container">
-          {getFilteredPosts().length === 0 ? (
-            renderEmptyState()
+      <div className="profile-content">
+        {/* Profile Header */}
+        <div className="profile-info-section">
+          <div className="profile-top">
+            <UserAvatar
+              uri={profileUser?.avatar || profileUser?.userAvatar}
+              name={profileUser?.fullName || profileUser?.name}
+              size={120}
+            />
+          </div>
+
+          <div className="profile-details">
+            <h2>{profileUser?.fullName || profileUser?.name || 'Anonymous Chef'}</h2>
+            <p className="email">{profileUser?.email || 'No email'}</p>
+            <p className="bio">{profileUser?.bio || 'Passionate about cooking and sharing delicious recipes!'}</p>
+            
+            <div className="profile-meta">
+              <div className="meta-item">
+                <Calendar size={16} />
+                <span>Joined {new Date(profileUser?.createdAt || Date.now()).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Stats */}
+          <div className="stats-container">
+            <div className="stat-item">
+              <strong>{stats.postsCount}</strong>
+              <span>Recipes</span>
+            </div>
+            <div className="stat-item">
+              <strong>{stats.likesCount}</strong>
+              <span>Total Likes</span>
+            </div>
+            <button 
+              className="stat-item"
+              onClick={() => navigate(`/profile/followers?userId=${userId}`)}
+            >
+              <strong>{stats.followersCount}</strong>
+              <span>Followers</span>
+            </button>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="action-buttons">
+            {isOwnProfile ? (
+              <button className="edit-btn" onClick={() => navigate('/profile/edit')}>
+                <User size={18} />
+                <span>Edit Profile</span>
+              </button>
+            ) : (
+              <>
+                <button
+                  className={`follow-btn ${isFollowing ? 'following' : ''}`}
+                  onClick={handleFollowToggle}
+                  disabled={isFollowLoading}
+                >
+                  {isFollowLoading ? (
+                    <Loader2 className="spinner" size={18} />
+                  ) : isFollowing ? (
+                    <><UserMinus size={18} /><span>Unfollow</span></>
+                  ) : (
+                    <><UserPlus size={18} /><span>Follow</span></>
+                  )}
+                </button>
+                
+                <button 
+                  className="message-btn" 
+                  onClick={handleStartChat}
+                  disabled={startingChat}
+                >
+                  {startingChat ? (
+                    <Loader2 className="spinner" size={18} />
+                  ) : (
+                    <><MessageCircle size={18} /><span>Message</span></>
+                  )}
+                </button>
+              </>
+            )}
+          </div>
+
+          {/* Quick Actions (Own Profile Only) */}
+          {isOwnProfile && (
+            <div className="quick-actions">
+              <button onClick={() => navigate('/groups')}>
+                <Users size={20} />
+                <span>My Groups</span>
+                <span className="arrow">→</span>
+              </button>
+              
+              <button onClick={() => navigate('/chats')}>
+                <MessageCircle size={20} />
+                <span>My Chats</span>
+                <span className="arrow">→</span>
+              </button>
+              
+              <button onClick={() => navigate(`/profile/statistics?userId=${userId}`)}>
+                <BarChart3 size={20} />
+                <span>My Statistics</span>
+                <span className="arrow">→</span>
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Tabs */}
+        <div className="profile-tabs">
+          <button
+            className={selectedTab === 'posts' ? 'active' : ''}
+            onClick={() => setSelectedTab('posts')}
+          >
+            <Grid size={20} />
+            <span>All Recipes</span>
+          </button>
+          <button
+            className={selectedTab === 'personal' ? 'active' : ''}
+            onClick={() => setSelectedTab('personal')}
+          >
+            <User size={20} />
+            <span>Personal</span>
+          </button>
+          <button
+            className={selectedTab === 'groups' ? 'active' : ''}
+            onClick={() => setSelectedTab('groups')}
+          >
+            <Users size={20} />
+            <span>Groups</span>
+          </button>
+        </div>
+
+        {/* Posts */}
+        <div className="posts-section">
+          {filteredPosts.length === 0 ? (
+            <div className="empty-state">
+              <div className="empty-icon">🍳</div>
+              <h3>
+                {selectedTab === 'posts' ? 'No Recipes Yet' : 
+                 selectedTab === 'personal' ? 'No Personal Recipes' : 'No Group Recipes'}
+              </h3>
+              <p>
+                {selectedTab === 'posts' && isOwnProfile ? 
+                 'Share your first delicious recipe!' : 
+                 selectedTab === 'personal' ? 'Create your first personal recipe!' :
+                 'Join groups and start sharing recipes!'}
+              </p>
+            </div>
           ) : (
-            getFilteredPosts().map((item, index) => renderPost(item, index))
+            filteredPosts.map((post) => (
+              <div key={post._id || post.id}>
+                {post.postSource === 'group' && (
+                  <div className="group-badge">
+                    <Users size={14} />
+                    <span>Posted in {post.groupName || 'Group'}</span>
+                  </div>
+                )}
+                <PostComponent
+                  post={post}
+                  navigation={navigate}
+                  onRefreshData={handleRefreshData}
+                />
+              </div>
+            ))
           )}
         </div>
       </div>
 
-      {renderSettingsModal()}
-      {renderDeleteModal()}
+      {/* Settings Modal */}
+      {showSettingsModal && (
+        <div className="modal-overlay" onClick={() => setShowSettingsModal(false)}>
+          <div className="settings-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Settings</h3>
+              <button onClick={() => setShowSettingsModal(false)}>
+                <X size={24} />
+              </button>
+            </div>
+
+            <div className="settings-list">
+              <button className="setting-item">
+                <Shield size={20} />
+                <span>Privacy</span>
+                <span className="arrow">→</span>
+              </button>
+
+              <button className="setting-item">
+                <HelpCircle size={20} />
+                <span>Help & Support</span>
+                <span className="arrow">→</span>
+              </button>
+
+              <button className="setting-item">
+                <Info size={20} />
+                <span>About</span>
+                <span className="arrow">→</span>
+              </button>
+
+              <div className="divider" />
+
+              <button className="setting-item danger" onClick={handleDeleteAccount}>
+                <Trash2 size={20} />
+                <span>Delete Account</span>
+                <span className="arrow">→</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Account Modal */}
+      {showDeleteModal && (
+        <div className="modal-overlay">
+          <div className="delete-modal">
+            <div className="delete-header">
+              <div className="warning-icon">⚠️</div>
+              <h3>Delete Account</h3>
+              <p>This action cannot be undone. All your recipes, chats, and data will be permanently removed.</p>
+            </div>
+
+            <div className="delete-content">
+              <label>Enter your password to confirm:</label>
+              <input
+                type="password"
+                value={deletePassword}
+                onChange={(e) => setDeletePassword(e.target.value)}
+                placeholder="Your password"
+                disabled={isDeleting}
+              />
+            </div>
+
+            <div className="delete-actions">
+              <button 
+                className="cancel-btn"
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setDeletePassword('');
+                }}
+                disabled={isDeleting}
+              >
+                Cancel
+              </button>
+
+              <button 
+                className="delete-btn"
+                onClick={confirmDeleteAccount}
+                disabled={isDeleting}
+              >
+                {isDeleting ? <Loader2 className="spinner" size={20} /> : 'Delete Forever'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
