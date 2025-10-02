@@ -1,19 +1,72 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiLogOut, FiSearch, FiSettings, FiRefreshCw, FiCamera, FiX, FiHeart, FiUsers, FiGlobe, FiFilter, FiBell, FiMessageCircle } from 'react-icons/fi';
-import { MdRestaurant, MdChatBubble } from 'react-icons/md';
-import { chatService } from '../../services/chatServices';
+import {
+  Heart,
+  MessageCircle,
+  Search,
+  SlidersHorizontal,
+  Bell,
+  X,
+  RefreshCw,
+  ChefHat,
+  Globe,
+  Users as UsersIcon,
+  Loader2,
+  Home as HomeIcon,
+  Plus
+} from 'lucide-react';
 import './HomeScreen.css';
-import { notificationService } from '../../services/NotificationService';
+import '../../index.css';
+import { useAuth } from '../../services/AuthContext';
+import { recipeService } from '../../services/recipeService';
+import { chatService } from '../../services/chatServices';
 import PostComponent from '../../components/common/PostComponent';
 import CreatePostComponent from '../../components/common/CreatePostComponent';
 import SharePostComponent from '../../components/common/SharePostComponent';
 import UserAvatar from '../../components/common/UserAvatar';
-import { useAuth } from '../../services/AuthContext';
-import { recipeService } from '../../services/recipeService';
+
+const FLAVORWORLD_COLORS = {
+  primary: '#F5A623',
+  secondary: '#4ECDC4',
+  accent: '#1F3A93',
+  background: '#FFF8F0',
+  white: '#FFFFFF',
+  text: '#2C3E50',
+  textLight: '#7F8C8D',
+  border: '#E8E8E8',
+  success: '#27AE60',
+  danger: '#E74C3C',
+};
+
+const RECIPE_CATEGORIES = [
+  'all', 'Asian', 'Italian', 'Mexican', 'Indian', 'Mediterranean', 
+  'American', 'French', 'Chinese', 'Japanese', 'Thai', 
+  'Middle Eastern', 'Greek', 'Spanish', 'Korean', 'Vietnamese', 'Dessert'
+];
+
+const MEAT_TYPES = [
+  'all', 'Vegetarian', 'Vegan', 'Chicken', 'Beef', 'Pork', 
+  'Fish', 'Seafood', 'Lamb', 'Turkey', 'Mixed'
+];
+
+const COOKING_TIMES = [
+  { key: 'all', label: 'All Times' },
+  { key: 'quick', label: 'Under 30 min', max: 30 },
+  { key: 'medium', label: '30-60 min', min: 30, max: 60 },
+  { key: 'long', label: '1-2 hours', min: 60, max: 120 },
+  { key: 'very_long', label: 'Over 2 hours', min: 120 }
+];
+
+const FEED_TYPES = [
+  { key: 'personalized', label: 'Following & Groups', icon: UsersIcon },
+  { key: 'all', label: 'All Posts', icon: Globe },
+  { key: 'following', label: 'Following Only', icon: Heart }
+];
+
 const HomeScreen = () => {
   const navigate = useNavigate();
   const { logout, currentUser, isLoading: authLoading } = useAuth();
+  
   const [posts, setPosts] = useState([]);
   const [filteredPosts, setFilteredPosts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -23,38 +76,13 @@ const HomeScreen = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [unreadChatCount, setUnreadChatCount] = useState(0);
-  const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0); 
-  const [feedType, setFeedType] = useState('personalized'); 
+  const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
+  const [feedType, setFeedType] = useState('personalized');
   
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedMeatType, setSelectedMeatType] = useState('all');
   const [selectedCookingTime, setSelectedCookingTime] = useState('all');
   const [sortBy, setSortBy] = useState('newest');
-
-  const categories = [
-    'all', 'Asian', 'Italian', 'Mexican', 'Indian', 'Mediterranean', 
-    'American', 'French', 'Chinese', 'Japanese', 'Thai', 
-    'Middle Eastern', 'Greek', 'Spanish', 'Korean', 'Vietnamese', 'Dessert'
-  ];
-  
-  const meatTypes = [
-    'all', 'Vegetarian', 'Vegan', 'Chicken', 'Beef', 'Pork', 
-    'Fish', 'Seafood', 'Lamb', 'Turkey', 'Mixed'
-  ];
-  
-  const cookingTimes = [
-    { key: 'all', label: 'All Times' },
-    { key: 'quick', label: 'Under 30 min', max: 30 },
-    { key: 'medium', label: '30-60 min', min: 30, max: 60 },
-    { key: 'long', label: '1-2 hours', min: 60, max: 120 },
-    { key: 'very_long', label: 'Over 2 hours', min: 120 }
-  ];
-
-  const feedTypes = [
-    { key: 'personalized', label: 'Following & Groups', icon: <FiUsers /> },
-    { key: 'all', label: 'All Posts', icon: <FiGlobe /> },
-    { key: 'following', label: 'Following Only', icon: <FiHeart /> }
-  ];
 
   const loadUnreadChatCount = useCallback(async () => {
     try {
@@ -67,24 +95,6 @@ const HomeScreen = () => {
     }
   }, []);
 
-  const loadUnreadNotificationsCount = useCallback(async () => {
-    try {
-      const userId = currentUser?.id || currentUser?._id;
-      if (userId) {
-        const result = await notificationService.getUnreadCount(userId);
-        if (result.success) {
-          setUnreadNotificationsCount(result.count);
-        }
-      }
-    } catch (error) {
-      console.error('Load unread notifications count error:', error);
-    }
-  }, [currentUser]);
-
-  const handleNavigateToNotifications = () => {
-    navigate('/notifications');
-  };
-
   const initializeChatService = useCallback(async () => {
     const userId = currentUser?.id || currentUser?._id;
     if (userId) {
@@ -92,19 +102,6 @@ const HomeScreen = () => {
       loadUnreadChatCount();
     }
   }, [currentUser, loadUnreadChatCount]);
-
-  const handleOpenChats = useCallback(() => {
-    navigate('/chat-list');
-  }, [navigate]);
-
-  if (authLoading) {
-    return (
-      <div className="home-loading-container">
-        <div className="home-spinner"></div>
-        <p className="home-loading-text">Loading...</p>
-      </div>
-    );
-  } 
 
   const applyFiltersAndSort = useCallback((postsArray) => {
     let filtered = [...postsArray];
@@ -122,10 +119,10 @@ const HomeScreen = () => {
     }
 
     if (selectedCookingTime !== 'all') {
-      const timeFilter = cookingTimes.find(t => t.key === selectedCookingTime);
+      const timeFilter = COOKING_TIMES.find(t => t.key === selectedCookingTime);
       if (timeFilter) {
         filtered = filtered.filter(post => {
-          const cookTime = parseInt(post.prepTime) || parseInt(post.preparationTime) || parseInt(post.cookingTime) || 0;
+          const cookTime = parseInt(post.prepTime) || 0;
           if (timeFilter.max && timeFilter.min) {
             return cookTime >= timeFilter.min && cookTime <= timeFilter.max;
           } else if (timeFilter.max) {
@@ -160,77 +157,47 @@ const HomeScreen = () => {
   }, [posts, applyFiltersAndSort]);
 
   const loadPosts = useCallback(async () => {
-      try {
-        const userId = currentUser?.id || currentUser?._id;
-        
-        if (!userId) {
-          console.error('No user ID available - user probably logged out');
-          setLoading(false);
-          setRefreshing(false);
-          const result = await recipeService.getAllRecipes();
-          if (result.success) {
-            const postsArray = Array.isArray(result.data) ? result.data : [];
-            const formattedPosts = postsArray.map(post => ({
-              ...post,
-              _id: post._id || post.id,
-              userName: post.userName || 'Anonymous',
-              userAvatar: post.userAvatar || null,
-              likes: Array.isArray(post.likes) ? post.likes : [],
-              comments: Array.isArray(post.comments) ? post.comments : [],
-              createdAt: post.createdAt || new Date().toISOString(),
-              postSource: 'personal',
-              groupName: null,
-              isLiked: false
-            }));
-            setPosts(formattedPosts);
-          }
-          return;
-        }
+    try {
+      const userId = currentUser?.id || currentUser?._id;
+      
+      if (!userId) {
+        setLoading(false);
+        setRefreshing(false);
+        return;
+      }
 
       let result;
       
       switch (feedType) {
         case 'personalized':
-          console.log(' Loading personalized feed...');
           result = await recipeService.getFeed(userId);
           break;
-          
         case 'following':
-          console.log(' Loading following posts...');
           result = await recipeService.getFollowingPosts(userId);
           break;
-          
         case 'all':
         default:
-          console.log(' Loading all posts...');
           result = await recipeService.getAllRecipes();
           break;
       }
       
       if (result.success) {
         const postsArray = Array.isArray(result.data) ? result.data : [];
-        
         const formattedPosts = postsArray.map(post => ({
           ...post,
           _id: post._id || post.id,
-          userName: post.userName || post.user?.name || post.author?.name || 'Anonymous',
-          userAvatar: post.userAvatar || post.user?.avatar || post.author?.avatar || null,
+          userName: post.userName || post.user?.name || 'Anonymous',
+          userAvatar: post.userAvatar || post.user?.avatar || null,
           likes: Array.isArray(post.likes) ? post.likes : [],
           comments: Array.isArray(post.comments) ? post.comments : [],
-          createdAt: post.createdAt || post.created_at || new Date().toISOString(),
+          createdAt: post.createdAt || new Date().toISOString(),
           postSource: post.groupId ? 'group' : 'personal',
           groupName: post.groupName || null,
-          isLiked: post.likes ? post.likes.includes(userId) : false
         }));
-        
-        console.log(` Loaded ${formattedPosts.length} posts for feed type: ${feedType}`);
         setPosts(formattedPosts);
-      } else {
-        alert(`Failed to load posts: ${result.message}`);
       }
     } catch (error) {
-      console.error(' Load posts error:', error);
-      alert(`Failed to load posts: ${error.message}`);
+      console.error('Load posts error:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -240,27 +207,9 @@ const HomeScreen = () => {
   useEffect(() => {
     if (currentUser?.id || currentUser?._id) {
       loadPosts();
-      loadUnreadNotificationsCount(); 
-    } else {
-      setPosts([]);
-      setFilteredPosts([]);
-      setLoading(false);
-      setUnreadNotificationsCount(0); 
-    }
-  }, [currentUser, feedType, loadPosts, loadUnreadNotificationsCount]);
-
-  useEffect(() => {
-    if (currentUser?.id || currentUser?._id) {
       initializeChatService();
     }
-  }, [currentUser, initializeChatService]);
-
-  const onRefresh = useCallback(() => {
-    setRefreshing(true);
-    loadPosts();
-    loadUnreadChatCount();
-    loadUnreadNotificationsCount(); 
-  }, [loadPosts, loadUnreadChatCount, loadUnreadNotificationsCount]);
+  }, [currentUser, feedType, loadPosts, initializeChatService]);
 
   const handleRefreshData = useCallback(async () => {
     await loadPosts();
@@ -268,29 +217,17 @@ const HomeScreen = () => {
 
   const handleLogout = useCallback(() => {
     if (window.confirm('Are you sure you want to logout?')) {
-      try {
-        chatService.disconnect();
-        logout();
-      } catch (error) {
-        alert('Failed to logout');
-      }
+      chatService.disconnect();
+      logout();
+      navigate('/login');
     }
-  }, [logout]);
-
-  const handleNavigateToProfile = () => {
-    navigate(`/profile?userId=${currentUser?.id || currentUser?._id}`);
-  };
-
-  const handleNavigateToSearch = () => {
-    navigate('/search');
-  };
+  }, [logout, navigate]);
 
   const clearAllFilters = () => {
     setSelectedCategory('all');
     setSelectedMeatType('all');
     setSelectedCookingTime('all');
     setSortBy('newest');
-    setShowFilters(false);
   };
 
   const getActiveFiltersCount = () => {
@@ -304,54 +241,29 @@ const HomeScreen = () => {
 
   const handlePostCreated = useCallback((newPost) => {
     handleRefreshData();
+    setShowCreateModal(false);
   }, [handleRefreshData]);
 
   const handlePostDelete = useCallback(async (postId) => {
-  console.log(' handlePostDelete called with:', postId);
-  
-  try {
-    console.log(' About to call recipeService.deleteRecipe...');
-    
-    const postToDelete = posts.find(p => (p._id || p.id) === postId);
-    console.log(' Found post to delete:', postToDelete);
-    
-    if (!postToDelete) {
-      console.error(' Post not found in posts array');
-      alert('Post not found');
-      return;
+    try {
+      const postToDelete = posts.find(p => (p._id || p.id) === postId);
+      if (!postToDelete) return;
+      
+      const result = await recipeService.deleteRecipe(postId, {
+        groupId: postToDelete.groupId,
+        userId: currentUser?.id || currentUser?._id,
+        isGroupPost: !!postToDelete.groupId,
+        authorId: postToDelete.userId
+      });
+      
+      if (result.success) {
+        handleRefreshData();
+        alert('Recipe deleted successfully');
+      }
+    } catch (error) {
+      console.error('Delete error:', error);
     }
-    
-    console.log(' Post data being sent:', {
-      groupId: postToDelete.groupId,
-      userId: currentUser?.id || currentUser?._id,
-      isGroupPost: !!postToDelete.groupId,
-      authorId: postToDelete.userId || postToDelete.authorId
-    });
-    
-    console.log(' Calling recipeService.deleteRecipe NOW...');
-    
-    const result = await recipeService.deleteRecipe(postId, {
-      groupId: postToDelete.groupId,
-      userId: currentUser?.id || currentUser?._id,
-      isGroupPost: !!postToDelete.groupId,
-      authorId: postToDelete.userId || postToDelete.authorId
-    });
-    
-    console.log(' Delete result:', result);
-    
-    if (result.success) {
-      console.log(' Delete successful!');
-      handleRefreshData();
-      alert('Recipe deleted successfully');
-    } else {
-      console.log(' Delete failed:', result.message);
-      alert(result.message || 'Failed to delete recipe');
-    }
-  } catch (error) {
-    console.error(' Delete error:', error);
-    alert('Failed to delete recipe');
-  }
-}, [posts, currentUser, handleRefreshData]); 
+  }, [posts, currentUser, handleRefreshData]);
 
   const handleShare = useCallback((post) => {
     setSharePost(post);
@@ -360,15 +272,15 @@ const HomeScreen = () => {
 
   const handleSystemShare = useCallback(async (post) => {
     try {
+      const shareContent = `Check out this amazing recipe: ${post.title}\n\n${post.description}`;
       if (navigator.share) {
         await navigator.share({
           title: post.title,
-          text: `Check out this amazing recipe: ${post.title}\n\n${post.description}`,
-          url: window.location.href
+          text: shareContent,
+          url: window.location.href,
         });
       } else {
-        // Fallback for browsers that don't support Web Share API
-        await navigator.clipboard.writeText(`Check out this amazing recipe: ${post.title}\n\n${post.description}\n\n${window.location.href}`);
+        await navigator.clipboard.writeText(shareContent);
         alert('Recipe link copied to clipboard!');
       }
     } catch (error) {
@@ -376,367 +288,299 @@ const HomeScreen = () => {
     }
   }, []);
 
-  const handleShareModalClose = useCallback(() => {
-    setShowShareModal(false);
-    setSharePost(null);
-  }, []);
-
-  const handleShareSubmit = useCallback((shareData) => {
-    alert('Recipe shared successfully!');
-    handleShareModalClose();
-  }, [handleShareModalClose]);
-
-  const renderFeedTypeSelector = () => (
-    <div className="home-feed-type-container">
-      <h3 className="home-feed-type-title">What would you like to see?</h3>
-      <div className="home-feed-type-scroll">
-        {feedTypes.map(type => (
-          <button
-            key={type.key}
-            className={`home-feed-type-chip ${feedType === type.key ? 'active' : ''}`}
-            onClick={() => setFeedType(type.key)}
-          >
-            {type.icon}
-            <span className="home-feed-type-chip-text">
-              {type.label}
-            </span>
-          </button>
-        ))}
+  if (authLoading) {
+    return (
+      <div className="home-screen-loading">
+        <Loader2 className="spinner" size={48} style={{ color: FLAVORWORLD_COLORS.primary }} />
+        <p>Loading FlavorWorld...</p>
       </div>
-    </div>
-  );
-
-  const renderFilters = () => (
-    showFilters && (
-      <div className="home-filters-container">
-        <div className="home-filters-scroll">
-          {/* Sort */}
-          <div className="home-filter-group">
-            <p className="home-filter-label">Sort:</p>
-            <div className="home-filter-chips">
-              {[
-                { key: 'newest', label: 'Newest' },
-                { key: 'oldest', label: 'Oldest' },
-                { key: 'popular', label: 'Popular' }
-              ].map(sort => (
-                <button
-                  key={sort.key}
-                  className={`home-filter-chip ${sortBy === sort.key ? 'active' : ''}`}
-                  onClick={() => setSortBy(sort.key)}
-                >
-                  {sort.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Category */}
-          <div className="home-filter-group">
-            <p className="home-filter-label">Category:</p>
-            <div className="home-filter-chips">
-              {categories.map(category => (
-                <button
-                  key={category}
-                  className={`home-filter-chip ${selectedCategory === category ? 'active' : ''}`}
-                  onClick={() => setSelectedCategory(category)}
-                >
-                  {category === 'all' ? 'All' : category}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Meat Type */}
-          <div className="home-filter-group">
-            <p className="home-filter-label">Type:</p>
-            <div className="home-filter-chips">
-              {meatTypes.map(meatType => (
-                <button
-                  key={meatType}
-                  className={`home-filter-chip ${selectedMeatType === meatType ? 'active' : ''}`}
-                  onClick={() => setSelectedMeatType(meatType)}
-                >
-                  {meatType === 'all' ? 'All' : meatType}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Cooking Time */}
-          <div className="home-filter-group">
-            <p className="home-filter-label">Prep Time:</p>
-            <div className="home-filter-chips">
-              {cookingTimes.map(time => (
-                <button
-                  key={time.key}
-                  className={`home-filter-chip ${selectedCookingTime === time.key ? 'active' : ''}`}
-                  onClick={() => setSelectedCookingTime(time.key)}
-                >
-                  {time.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Clear Filters */}
-        {getActiveFiltersCount() > 0 && (
-          <button className="home-clear-filters-button" onClick={clearAllFilters}>
-            <FiRefreshCw />
-            <span>Clear All Filters</span>
-          </button>
-        )}
-
-        {/* Search Stats */}
-        <div className="home-search-stats">
-          <p className="home-search-stats-text">
-            {getActiveFiltersCount() > 0 ? `${filteredPosts.length} recipes found` : `${posts.length} total recipes`}
-          </p>
-        </div>
-      </div>
-    )
-  );
-
-  const renderCreatePost = useCallback(() => (
-    <div className="home-create-post-container">
-      <div className="home-create-post-header">
-        <UserAvatar
-          uri={currentUser?.avatar || currentUser?.userAvatar}
-          name={currentUser?.fullName || currentUser?.name}
-          size={40}
-          onPress={handleNavigateToProfile}
-        />
-        <button 
-          className="home-create-post-input"
-          onClick={() => setShowCreateModal(true)}
-        >
-          <span className="home-create-post-placeholder">
-            What delicious recipe will you share today?
-          </span>
-        </button>
-      </div>
-      
-      <div className="home-create-post-actions">
-        <button 
-          className="home-create-post-button"
-          onClick={() => setShowCreateModal(true)}
-        >
-          <MdRestaurant />
-          <span>Recipe</span>
-        </button>
-        
-        <button 
-          className="home-create-post-button"
-          onClick={() => setShowCreateModal(true)}
-        >
-          <FiCamera />
-          <span>Photo</span>
-        </button>
-      </div>
-    </div>
-  ), [currentUser, handleNavigateToProfile]);
-
-  const renderPost = useCallback((post, index) => {
-  return (
-    <div key={post._id || post.id || index} className="home-post-container">
-      {post.postSource === 'group' && post.groupName && (
-        <div className="home-post-source-label">
-          <MdChatBubble />
-          <span className="home-post-source-text">from {post.groupName}</span>
-        </div>
-      )}
-      
-      <PostComponent
-        post={post || {}}
-        navigation={{ navigate }}
-        onDelete={handlePostDelete}
-        onShare={() => handleSystemShare(post)}
-        onShareCustom={() => handleShare(post)}  
-        onRefreshData={handleRefreshData}
-      />
-    </div>
-  );
-}, [handlePostDelete, handleSystemShare, handleShare, handleRefreshData, navigate]);
-
-  const renderEmptyComponent = useCallback(() => (
-    !loading && (
-      <div className="home-empty-container">
-        <div className="home-empty-icon">
-          {getActiveFiltersCount() > 0 ? <FiFilter size={80} /> :
-           feedType === 'personalized' ? <FiUsers size={80} /> :
-           feedType === 'following' ? <FiHeart size={80} /> : <MdRestaurant size={80} />}
-        </div>
-        <h2 className="home-empty-title">
-          {getActiveFiltersCount() > 0 ? 'No Recipes Found' :
-           feedType === 'personalized' ? 'Your Feed is Empty' :
-           feedType === 'following' ? 'No Posts from Following' : 'No Recipes Yet!'}
-        </h2>
-        <p className="home-empty-subtitle">
-          {getActiveFiltersCount() > 0
-            ? 'No recipes match your filter criteria. Try adjusting your filters.'
-            : feedType === 'personalized'
-            ? 'Follow some chefs or join groups to see their amazing recipes here!'
-            : feedType === 'following'
-            ? 'Follow some amazing chefs to see their recipes in your feed.'
-            : 'Be the first to share your amazing recipe with the FlavorWorld community'
-          }
-        </p>
-        {(getActiveFiltersCount() === 0 && feedType !== 'following' && feedType !== 'groups') && (
-          <button 
-            className="home-empty-button"
-            onClick={() => setShowCreateModal(true)}
-          >
-            Share Recipe
-          </button>
-        )}
-        {feedType === 'following' && (
-          <button 
-            className="home-empty-button"
-            onClick={handleNavigateToSearch}
-          >
-            Find Chefs to Follow
-          </button>
-        )}
-      </div>
-    )
-  ), [loading, getActiveFiltersCount, feedType, handleNavigateToSearch]);
-
-  const renderLoader = useCallback(() => (
-    loading && (
-      <div className="home-loader-container">
-        <div className="home-spinner"></div>
-        <p className="home-loader-text">
-          {feedType === 'personalized' ? 'Loading your personalized feed...' :
-           feedType === 'following' ? 'Loading posts from chefs you follow...' : 'Loading delicious recipes...'}
-        </p>
-      </div>
-    )
-  ), [loading, feedType]);
+    );
+  }
 
   return (
-    <div className="home-container">
-      {/* Header */}
-      <div className="home-header">
-        <h1 className="home-header-title">FlavorWorld</h1>
-        <div className="home-header-buttons">
-          {/* Search Button */}
-          <button 
-            className="home-header-button"
-            onClick={handleNavigateToSearch}
-          >
-            <FiSearch />
-          </button>
+    <div className="home-screen-container">
+      {/* Top Navigation Bar */}
+      <header className="top-nav">
+        <div className="top-nav-content">
+          <div className="top-nav-left">
+            <h1 className="logo">FlavorWorld</h1>
+            <div className="search-box">
+              <Search size={20} />
+              <input 
+                type="text" 
+                placeholder="Search recipes, chefs..." 
+                onClick={() => navigate('/search')}
+                readOnly
+              />
+            </div>
+          </div>
           
-          {/* Filter Button */}
-          <button 
-            className={`home-header-button ${showFilters ? 'active' : ''}`}
-            onClick={() => setShowFilters(!showFilters)}
-          >
-            <FiFilter />
-            {getActiveFiltersCount() > 0 && (
-              <div className="home-filter-badge">
-                <span>{getActiveFiltersCount()}</span>
-              </div>
-            )}
-          </button>
-          
-          {/* Logout Button */}
-          <button className="home-logout-button" onClick={handleLogout}>
-            <FiLogOut />
-          </button>
+          <div className="top-nav-right">
+            <button className="nav-icon-btn" onClick={() => navigate('/home')}>
+              <HomeIcon size={24} />
+            </button>
+            
+            <button 
+              className="nav-icon-btn"
+              onClick={() => setShowFilters(!showFilters)}
+            >
+              <SlidersHorizontal size={24} />
+              {getActiveFiltersCount() > 0 && (
+                <span className="badge">{getActiveFiltersCount()}</span>
+              )}
+            </button>
+            
+            <button 
+              className="nav-icon-btn" 
+              onClick={() => navigate('/notifications')}
+            >
+              <Bell size={24} />
+              {unreadNotificationsCount > 0 && (
+                <span className="badge">{unreadNotificationsCount}</span>
+              )}
+            </button>
+            
+            <button 
+              className="nav-icon-btn" 
+              onClick={() => navigate('/chats')}
+            >
+              <MessageCircle size={24} />
+              {unreadChatCount > 0 && (
+                <span className="badge">{unreadChatCount}</span>
+              )}
+            </button>
+            
+            <button 
+              className="nav-icon-btn profile-btn"
+              onClick={() => navigate('/profile')}
+            >
+              <UserAvatar
+                uri={currentUser?.avatar || currentUser?.userAvatar}
+                name={currentUser?.fullName || currentUser?.name}
+                size={32}
+              />
+            </button>
+          </div>
         </div>
-      </div>
-      
-      {/* Feed Type Selector */}
-      {renderFeedTypeSelector()}
-      
-      {/* Filters */}
-      {renderFilters()}
-      
-      {/* Main Content */}
-      <div className="home-main-content">
-        {!showFilters && renderCreatePost()}
-        
-        {filteredPosts.length === 0 ? renderEmptyComponent() : (
-          <div className="home-posts-list">
-            {filteredPosts.map((post, index) => renderPost(post, index))}
-          </div>
-        )}
-      </div>
+      </header>
 
-      {/* Bottom Navigation */}
-      <div className="home-bottom-navigation">
-        <button 
-          className="home-bottom-nav-item"
-          onClick={handleNavigateToNotifications}
-        >
-          <div className="home-bottom-nav-icon">
-            <FiBell />
-            {unreadNotificationsCount > 0 && (
-              <div className="home-notification-badge">
-                <span>
-                  {unreadNotificationsCount > 99 ? '99+' : unreadNotificationsCount}
-                </span>
+      {/* Main Content Area */}
+      <div className="main-content-wrapper">
+        {/* Left Sidebar - Hidden on mobile */}
+        <aside className="left-sidebar">
+          <div className="sidebar-section">
+            <button 
+              className="sidebar-item"
+              onClick={() => navigate('/profile')}
+            >
+              <UserAvatar
+                uri={currentUser?.avatar || currentUser?.userAvatar}
+                name={currentUser?.fullName || currentUser?.name}
+                size={36}
+              />
+              <span>{currentUser?.fullName || currentUser?.name}</span>
+            </button>
+            
+            <button className="sidebar-item">
+              <div className="sidebar-icon">
+                <ChefHat size={20} style={{ color: FLAVORWORLD_COLORS.primary }} />
               </div>
-            )}
+              <span>My Recipes</span>
+            </button>
+            
+            <button className="sidebar-item">
+              <div className="sidebar-icon">
+                <UsersIcon size={20} style={{ color: FLAVORWORLD_COLORS.secondary }} />
+              </div>
+              <span>Groups</span>
+            </button>
+            
+            <button className="sidebar-item">
+              <div className="sidebar-icon">
+                <Heart size={20} style={{ color: FLAVORWORLD_COLORS.danger }} />
+              </div>
+              <span>Favorites</span>
+            </button>
           </div>
-          <span className="home-bottom-nav-label">Notifications</span>
-        </button>
+        </aside>
 
-        <button 
-          className="home-bottom-nav-item"
-          onClick={handleNavigateToProfile}
-        >
-          <div className="home-bottom-nav-icon-profile">
+        {/* Center Feed */}
+        <main className="center-feed">
+          {/* Feed Type Selector */}
+          <div className="feed-type-selector">
+            {FEED_TYPES.map(type => {
+              const Icon = type.icon;
+              return (
+                <button
+                  key={type.key}
+                  className={`feed-type-btn ${feedType === type.key ? 'active' : ''}`}
+                  onClick={() => setFeedType(type.key)}
+                >
+                  <Icon size={20} />
+                  <span>{type.label}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Filters Panel */}
+          {showFilters && (
+            <div className="filters-panel">
+              <div className="filters-header">
+                <h3>Filters</h3>
+                <button onClick={() => setShowFilters(false)}>
+                  <X size={20} />
+                </button>
+              </div>
+              
+              <div className="filter-section">
+                <label>Sort By:</label>
+                <div className="filter-options">
+                  {['newest', 'oldest', 'popular'].map(sort => (
+                    <button
+                      key={sort}
+                      className={`filter-btn ${sortBy === sort ? 'active' : ''}`}
+                      onClick={() => setSortBy(sort)}
+                    >
+                      {sort.charAt(0).toUpperCase() + sort.slice(1)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="filter-section">
+                <label>Category:</label>
+                <div className="filter-options">
+                  {RECIPE_CATEGORIES.slice(0, 8).map(cat => (
+                    <button
+                      key={cat}
+                      className={`filter-btn ${selectedCategory === cat ? 'active' : ''}`}
+                      onClick={() => setSelectedCategory(cat)}
+                    >
+                      {cat === 'all' ? 'All' : cat}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {getActiveFiltersCount() > 0 && (
+                <button className="clear-filters" onClick={clearAllFilters}>
+                  <RefreshCw size={16} />
+                  Clear All
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Create Post Card */}
+          <div className="create-post-card">
             <UserAvatar
               uri={currentUser?.avatar || currentUser?.userAvatar}
               name={currentUser?.fullName || currentUser?.name}
-              size={28}
+              size={40}
             />
+            <button 
+              className="create-post-input"
+              onClick={() => setShowCreateModal(true)}
+            >
+              What's cooking today?
+            </button>
+            <button 
+              className="create-post-icon-btn"
+              onClick={() => setShowCreateModal(true)}
+            >
+              <Plus size={24} style={{ color: FLAVORWORLD_COLORS.primary }} />
+            </button>
           </div>
-          <span className="home-bottom-nav-label">Profile</span>
-        </button>
 
-        <button 
-          className="home-bottom-nav-item"
-          onClick={handleOpenChats}
-        >
-          <div className="home-bottom-nav-icon-chat">
-            <FiMessageCircle />
-            {unreadChatCount > 0 && (
-              <div className="home-chat-badge">
-                <span>
-                  {unreadChatCount > 99 ? '99+' : unreadChatCount}
-                </span>
+          {/* Posts Feed */}
+          {loading ? (
+            <div className="feed-loading">
+              <Loader2 className="spinner" size={40} />
+              <p>Loading delicious recipes...</p>
+            </div>
+          ) : filteredPosts.length === 0 ? (
+            <div className="feed-empty">
+              <ChefHat size={64} style={{ color: FLAVORWORLD_COLORS.textLight }} />
+              <h2>No Recipes Found</h2>
+              <p>Be the first to share your amazing recipe!</p>
+              <button 
+                className="primary-btn"
+                onClick={() => setShowCreateModal(true)}
+              >
+                Share Recipe
+              </button>
+            </div>
+          ) : (
+            <div className="posts-feed">
+              {filteredPosts.map((post) => (
+                <div key={post._id || post.id} className="post-card">
+                  <PostComponent
+                    post={post}
+                    navigation={{ navigate }}
+                    onDelete={handlePostDelete}
+                    onShare={() => handleSystemShare(post)}
+                    onShareCustom={() => handleShare(post)}
+                    onRefreshData={handleRefreshData}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+        </main>
+
+        {/* Right Sidebar - Hidden on mobile */}
+        <aside className="right-sidebar">
+          <div className="sidebar-card">
+            <h3>Trending Recipes</h3>
+            <div className="trending-list">
+              <div className="trending-item">
+                <span className="trend-number">1</span>
+                <span className="trend-name">Pasta Carbonara</span>
               </div>
-            )}
+              <div className="trending-item">
+                <span className="trend-number">2</span>
+                <span className="trend-name">Sushi Rolls</span>
+              </div>
+              <div className="trending-item">
+                <span className="trend-number">3</span>
+                <span className="trend-name">Chocolate Cake</span>
+              </div>
+            </div>
           </div>
-          <span className="home-bottom-nav-label active">Messages</span>
-        </button>
+
+          <div className="sidebar-card">
+            <h3>Suggested Chefs</h3>
+            <div className="suggestions-list">
+              <div className="suggestion-item">
+                <UserAvatar name="Chef Mario" size={32} />
+                <div className="suggestion-info">
+                  <span className="suggestion-name">Chef Mario</span>
+                  <span className="suggestion-stats">245 recipes</span>
+                </div>
+                <button className="follow-btn">Follow</button>
+              </div>
+            </div>
+          </div>
+        </aside>
       </div>
 
       {/* Create Post Modal */}
       {showCreateModal && (
-        <div className="home-modal-overlay" onClick={() => setShowCreateModal(false)}>
-          <div className="home-modal-container" onClick={e => e.stopPropagation()}>
-            <div className="home-modal-header">
-              <button 
-                onClick={() => setShowCreateModal(false)}
-                className="home-modal-close-button"
-              >
-                <FiX />
+        <div className="modal-overlay" onClick={() => setShowCreateModal(false)}>
+          <div className="modal-container" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Share Recipe</h2>
+              <button onClick={() => setShowCreateModal(false)}>
+                <X size={24} />
               </button>
-              <h2 className="home-modal-title">Share Recipe</h2>
-              <div className="home-modal-placeholder" />
             </div>
-            
-            <CreatePostComponent
-              currentUser={currentUser}
-              onPostCreated={(newPost) => {
-                handlePostCreated(newPost);
-                setShowCreateModal(false);
-              }}
-            />
+            <div className="modal-body">
+              <CreatePostComponent
+                currentUser={currentUser}
+                onPostCreated={handlePostCreated}
+              />
+            </div>
           </div>
         </div>
       )}
@@ -745,22 +589,12 @@ const HomeScreen = () => {
       {showShareModal && sharePost && (
         <SharePostComponent
           visible={showShareModal}
-          onClose={handleShareModalClose}
+          onClose={() => setShowShareModal(false)}
           post={sharePost}
-          onShare={handleShareSubmit}
-          currentUserId={currentUser?.id}
+          onShare={() => setShowShareModal(false)}
+          currentUserId={currentUser?.id || currentUser?._id}
           navigation={{ navigate }}
         />
-      )}
-
-      {/* Loading Overlay */}
-      {renderLoader()}
-      
-      {/* Refresh Button */}
-      {refreshing && (
-        <div className="home-refresh-overlay">
-          <div className="home-spinner"></div>
-        </div>
       )}
     </div>
   );

@@ -26,14 +26,14 @@
 }
 
 .user-avatar-image {
-  border: 2px solid #F5A623;
+  border: 2px solid var(--primary);
   object-fit: cover;
   display: block;
 }
 
 .user-avatar-default {
   background-color: #D6D8DB;
-  border: 2px solid #F5A623;
+  border: 2px solid var(--primary);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -57,7 +57,7 @@
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  border: 2px solid #FFFFFF;
+  border: 2px solid var(--white);
   box-sizing: border-box;
 }
 

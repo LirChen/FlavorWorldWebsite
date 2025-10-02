@@ -1,0 +1,32 @@
+/* DefaultAvatar.css */
+.default-avatar {
+  background-color: #E8E8E8;
+  border: 2px solid var(--primary);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-weight: 600;
+  color: var(--text-light);
+  cursor: default;
+  transition: all 0.2s ease-in-out;
+  user-select: none;
+}
+
+.default-avatar.clickable {
+  cursor: pointer;
+}
+
+.default-avatar.clickable:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.default-avatar.clickable:active {
+  transform: scale(0.95);
+}
+
+@media (max-width: 768px) {
+  .default-avatar.clickable:hover {
+    transform: none;
+  }
+}

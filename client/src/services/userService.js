@@ -642,6 +642,35 @@ class UserService {
     // Return unsubscribe function
     return () => clearInterval(interval);
   }
+
+  async getFriends(userId) {
+    try {
+      console.log('Fetching friends for user:', userId);
+      
+      const response = await this.api.get(`/api/users/${userId}/friends`);
+      
+      return {
+        success: true,
+        data: response.data.friends || response.data || []
+      };
+    } catch (error) {
+      console.error('Get friends error:', error);
+      
+      // If endpoint doesn't exist, return empty array
+      if (error.response?.status === 404) {
+        return {
+          success: true,
+          data: []
+        };
+      }
+      
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Failed to fetch friends',
+        data: []
+      };
+    }
+  }
 }
 
 export const userService = new UserService();
