@@ -415,6 +415,29 @@
   white-space: pre-wrap;
 }
 
+.options-menu .option-item.delete {
+  color: var(--danger);
+}
+
+.options-menu .option-item.delete:hover {
+  background: rgba(231, 76, 60, 0.1);
+}
+
+.stat-btn {
+  background: none;
+  border: none;
+  color: var(--text-light);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.2s;
+}
+
+.stat-btn:hover {
+  color: var(--primary);
+  text-decoration: underline;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .post-title {

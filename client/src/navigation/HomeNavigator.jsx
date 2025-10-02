@@ -23,110 +23,45 @@ import HomeScreen from '../pages/Home/HomeScreen';
 export default function HomeNavigator() {
   return (
     <Routes>
-       <Route 
-                path="/" 
-                element={<Navigate to="/home" replace />} 
-              />
+      {/* Default redirect */}
       <Route 
-        path="/home" 
-        element={<HomeScreen />} 
+        path="/" 
+        element={<Navigate to="/home" replace />} 
       />
+
+      {/* Main Pages */}
+      <Route path="/home" element={<HomeScreen />} />
+      <Route path="/search" element={<SearchScreen />} />
+      <Route path="/notifications" element={<NotificationsScreen />} />
       
-      <Route 
-        path="/search" 
-        element={<SearchScreen />} 
-      />
+      {/* Profile Routes */}
+      <Route path="/profile" element={<ProfileScreen />} />
+      <Route path="/user-statistics" element={<UserStatisticsScreen />} />
+
+      {/* Post Routes */}
+      <Route path="/edit-post" element={<EditPostScreen />} />
+      <Route path="/post/:postId" element={<PostModalScreen />} />
+
+      {/* Groups Routes */}
+      <Route path="/groups" element={<GroupsScreen />} />
+      <Route path="/create-group" element={<CreateGroupComponent />} />
+      <Route path="/group/:groupId" element={<GroupDetailsScreen />} />
+      <Route path="/group/:groupId/admin-requests" element={<GroupAdminRequestsScreen />} />
+      <Route path="/group/:groupId/members" element={<GroupMembersScreen />} />
+      <Route path="/group/:groupId/settings" element={<GroupSettingsScreen />} />
+
+      {/* Chat Routes */}
+      <Route path="/chats" element={<ChatListScreen />} />
+      <Route path="/chat/:chatId" element={<ChatConversationScreen />} />
+      <Route path="/chat/search" element={<UserSearchScreen />} />
       
-      <Route 
-        path="/notifications" 
-        element={<NotificationsScreen />} 
-      />
-      
-      <Route 
-        path="/profile" 
-        element={<ProfileScreen />} 
-      />
+      {/* Group Chat Routes */}
+      <Route path="/group-chat/create" element={<GroupChatCreationScreen />} />
+      <Route path="/group-chat/:chatId" element={<GroupChatConversationScreen />} />
+      <Route path="/group-chat/:chatId/settings" element={<GroupChatSettingsScreen />} />
 
-      <Route 
-        path="/edit-profile" 
-        element={<EditPostScreen />} 
-      />
-
-      <Route 
-        path="/user-statistics" 
-        element={<UserStatisticsScreen />} 
-      />
-
-      <Route 
-        path="/edit-post" 
-        element={<EditPostScreen />}
-      />
-
-      <Route 
-        path="/groups" 
-        element={<GroupsScreen />} 
-      />
-
-      <Route 
-        path="/group-details" 
-        element={<GroupDetailsScreen />} 
-      />
-
-      <Route 
-        path="/group-admin-requests" 
-        element={<GroupAdminRequestsScreen />} 
-      />
-
-      <Route 
-        path="/group-members" 
-        element={<GroupMembersScreen />}
-      />
-
-      <Route 
-        path="/create-group" 
-        element={<CreateGroupComponent />} 
-      />
-
-      <Route 
-        path="/chat-list" 
-        element={<ChatListScreen />} 
-      />
-
-      <Route 
-        path="/chat-conversation" 
-        element={<ChatConversationScreen />} 
-      />
-
-      <Route 
-        path="/group-settings" 
-        element={<GroupSettingsScreen />}
-      />
-
-      <Route 
-        path="/group-chat-creation" 
-        element={<GroupChatCreationScreen />} 
-      />
-
-      <Route 
-        path="/group-chat-conversation" 
-        element={<GroupChatConversationScreen />} 
-      />
-
-      <Route 
-        path="/user-search" 
-        element={<UserSearchScreen />} 
-      />
-
-      <Route 
-        path="/group-chat-settings" 
-        element={<GroupChatSettingsScreen />}
-      />
-
-      <Route 
-        path="/post-modal" 
-        element={<PostModalScreen />}
-      />
-
+      {/* Catch all - redirect to home */}
+      <Route path="*" element={<Navigate to="/home" replace />} />
     </Routes>
   );
 }
