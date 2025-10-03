@@ -10,7 +10,7 @@ import UserSearchScreen from '../pages/Chats/UserSearchScreen';
 import GroupChatSettingsScreen from '../pages/Chats/GroupChatSettingsScreen';
 import NotificationsScreen from '../pages/Notifications/NotificationsScreen';
 import PostModalScreen from '../pages/posts/PostModalScreen';
-import CreateGroupComponent from '../pages/Groups/CreateGroupComponent';
+import CreateGroupComponent from '../components/groups/CreateGroupComponent';
 import GroupsScreen from '../pages/Groups/GroupsScreen';
 import ProfileScreen from '../pages/Profile/ProfileScreen';
 import EditProfileScreen from '../pages/Profile/EditProfileScreen';
