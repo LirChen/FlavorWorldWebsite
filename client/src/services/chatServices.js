@@ -6,7 +6,7 @@ const SOCKET_SERVER_URL = 'http://localhost:3000';
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 10000,
+  timeout: 120000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -757,17 +757,28 @@ class ChatService {
 
   async getAllChats() {
     try {
-      console.log(' Fetching all chats (private + group)...');
+      console.log('Fetching all chats (private + group)...');
       
-      const [privateChatsResult, groupChatsResult] = await Promise.all([
-        this.getMyChats(),
-        this.getMyGroupChats()
-      ]);
+      const currentUserId = this.getCurrentUserId();
+      
+      if (!currentUserId) {
+        console.warn('No current user ID');
+        return { success: true, data: [] };
+      }
+
+      const config = {
+        headers: { 
+          'x-user-id': currentUserId 
+        },
+        timeout: 120000
+      };
 
       let allChats = [];
 
-      if (privateChatsResult.success) {
-        const privateChats = privateChatsResult.data.map(chat => ({
+      // Fetch private chats
+      try {
+        const privateResponse = await apiClient.get('/chats/my', config);
+        const privateChats = (privateResponse.data || []).map(chat => ({
           ...chat,
           chatType: 'private',
           displayName: chat.otherUser?.userName || 'Unknown User',
@@ -775,10 +786,15 @@ class ChatService {
           participantsCount: 2
         }));
         allChats.push(...privateChats);
+        console.log('Private chats loaded:', privateChats.length);
+      } catch (error) {
+        console.warn('Failed to load private chats:', error.message);
       }
 
-      if (groupChatsResult.success) {
-        const groupChats = groupChatsResult.data.map(chat => ({
+      // Fetch group chats
+      try {
+        const groupResponse = await apiClient.get('/group-chats/my', config);
+        const groupChats = (groupResponse.data || []).map(chat => ({
           ...chat,
           chatType: 'group',
           displayName: chat.name,
@@ -786,17 +802,23 @@ class ChatService {
           participantsCount: chat.participantsCount || chat.participants?.length || 0
         }));
         allChats.push(...groupChats);
+        console.log('Group chats loaded:', groupChats.length);
+      } catch (error) {
+        console.warn('Failed to load group chats:', error.message);
       }
 
+      // Sort by last update
       allChats.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
 
-      console.log(` All chats fetched: ${allChats.length} total`);
+      console.log(`All chats fetched: ${allChats.length} total`);
       return { success: true, data: allChats };
 
     } catch (error) {
+      console.error('Get all chats error:', error);
       return { 
         success: false, 
-        message: 'Failed to fetch chats' 
+        message: 'Failed to fetch chats',
+        data: []
       };
     }
   }

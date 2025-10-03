@@ -51,11 +51,14 @@ const NotificationsScreen = () => {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [currentUser]);
+  }, [currentUser?.id, currentUser?._id]);
 
   useEffect(() => {
-    loadNotifications();
-  }, [loadNotifications]);
+    const userId = currentUser?.id || currentUser?._id;
+    if (userId) {
+      loadNotifications();
+    }
+  }, [currentUser?.id, currentUser?._id, loadNotifications]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);

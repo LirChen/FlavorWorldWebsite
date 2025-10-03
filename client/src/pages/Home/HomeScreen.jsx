@@ -20,6 +20,7 @@ import './HomeScreen.css';
 import '../../index.css';
 import { useAuth } from '../../services/AuthContext';
 import { recipeService } from '../../services/recipeService';
+import { feedService } from '../../services/feedService';
 import { chatService } from '../../services/chatServices';
 import PostComponent from '../../components/common/PostComponent';
 import CreatePostComponent from '../../components/common/CreatePostComponent';
@@ -85,25 +86,6 @@ const HomeScreen = () => {
   const [selectedCookingTime, setSelectedCookingTime] = useState('all');
   const [sortBy, setSortBy] = useState('newest');
 
-  const loadUnreadChatCount = useCallback(async () => {
-    try {
-      const result = await chatService.getUnreadChatsCount();
-      if (result.success) {
-        setUnreadChatCount(result.count);
-      }
-    } catch (error) {
-      console.error('Load unread count error:', error);
-    }
-  }, []);
-
-  const initializeChatService = useCallback(async () => {
-    const userId = currentUser?.id || currentUser?._id;
-    if (userId) {
-      await chatService.initializeSocket(userId);
-      loadUnreadChatCount();
-    }
-  }, [currentUser, loadUnreadChatCount]);
-
   const applyFiltersAndSort = useCallback((postsArray) => {
     let filtered = [...postsArray];
 
@@ -153,7 +135,9 @@ const HomeScreen = () => {
   }, [selectedCategory, selectedMeatType, selectedCookingTime, sortBy]);
 
   useEffect(() => {
+    console.log('Applying filters to posts:', posts.length);
     const filtered = applyFiltersAndSort(posts);
+    console.log('Filtered posts:', filtered.length);
     setFilteredPosts(filtered);
   }, [posts, applyFiltersAndSort]);
 
@@ -161,7 +145,10 @@ const HomeScreen = () => {
     try {
       const userId = currentUser?.id || currentUser?._id;
       
+      console.log('Loading posts - userId:', userId, 'feedType:', feedType);
+      
       if (!userId) {
+        console.warn('No userId found, skipping load');
         setLoading(false);
         setRefreshing(false);
         return;
@@ -171,19 +158,26 @@ const HomeScreen = () => {
       
       switch (feedType) {
         case 'personalized':
-          result = await recipeService.getFeed(userId);
+          console.log('Fetching personalized feed...');
+          result = await feedService.getPersonalizedFeed(userId, 'all');
           break;
         case 'following':
-          result = await recipeService.getFollowingPosts(userId);
+          console.log('Fetching following feed...');
+          result = await feedService.getPersonalizedFeed(userId, 'following');
           break;
         case 'all':
         default:
+          console.log('Fetching all recipes...');
           result = await recipeService.getAllRecipes();
           break;
       }
       
+      console.log('Feed result:', result);
+      
       if (result.success) {
         const postsArray = Array.isArray(result.data) ? result.data : [];
+        console.log('Posts loaded from API:', postsArray.length);
+        
         const formattedPosts = postsArray.map(post => ({
           ...post,
           _id: post._id || post.id,
@@ -195,24 +189,61 @@ const HomeScreen = () => {
           postSource: post.groupId ? 'group' : 'personal',
           groupName: post.groupName || null,
         }));
+        
+        console.log('Setting posts in state:', formattedPosts.length);
         setPosts(formattedPosts);
+      } else {
+        console.error('Feed fetch failed:', result.message);
+        setPosts([]);
       }
     } catch (error) {
       console.error('Load posts error:', error);
+      setPosts([]);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [feedType, currentUser]);
+  }, [feedType, currentUser?.id, currentUser?._id]);
 
+  const loadUnreadChatCount = useCallback(async () => {
+    try {
+      const result = await chatService.getUnreadChatsCount();
+      if (result.success) {
+        setUnreadChatCount(result.count);
+      }
+    } catch (error) {
+      console.error('Load unread count error:', error);
+    }
+  }, []);
+
+  const initializeChatService = useCallback(async () => {
+    const userId = currentUser?.id || currentUser?._id;
+    if (userId) {
+      await chatService.initializeSocket(userId);
+      loadUnreadChatCount();
+    }
+  }, [currentUser?.id, currentUser?._id, loadUnreadChatCount]);
+
+  // Load posts when user or feedType changes
   useEffect(() => {
-    if (currentUser?.id || currentUser?._id) {
+    const userId = currentUser?.id || currentUser?._id;
+    if (userId) {
+      console.log('User or feedType changed, loading posts...');
       loadPosts();
+    }
+  }, [currentUser?.id, currentUser?._id, feedType, loadPosts]);
+
+  // Initialize chat service once when user is available
+  useEffect(() => {
+    const userId = currentUser?.id || currentUser?._id;
+    if (userId) {
+      console.log('Initializing chat service...');
       initializeChatService();
     }
-  }, [currentUser, feedType, loadPosts, initializeChatService]);
+  }, [currentUser?.id, currentUser?._id, initializeChatService]);
 
   const handleRefreshData = useCallback(async () => {
+    setRefreshing(true);
     await loadPosts();
   }, [loadPosts]);
 

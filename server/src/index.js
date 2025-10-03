@@ -5132,7 +5132,6 @@ app.get('/api/groups/:groupId', async (req, res) => {
 });
 
 // FEED 
-
 app.get('/api/feed', async (req, res) => {
   try {
     console.log('=== Personalized Feed Request ===');
@@ -5141,7 +5140,7 @@ app.get('/api/feed', async (req, res) => {
       return res.status(503).json({ message: 'Database not available' });
     }
 
-    const { userId, type } = req.query;
+    const { userId, type, page = 1, limit = 50 } = req.query; // Add pagination
     
     if (!userId) {
       return res.status(400).json({ message: 'User ID is required' });
@@ -5151,7 +5150,7 @@ app.get('/api/feed', async (req, res) => {
       return res.status(400).json({ message: 'Invalid user ID' });
     }
 
-    console.log('Building personalized feed for user:', userId, 'type:', type);
+    console.log('Building personalized feed for user:', userId, 'type:', type, 'page:', page);
 
     const user = await User.findById(userId);
     if (!user) {
@@ -5172,13 +5171,17 @@ app.get('/api/feed', async (req, res) => {
     console.log('User is member of:', groupIds.length, 'groups');
 
     let allPosts = [];
+    const skip = (parseInt(page) - 1) * parseInt(limit);
 
     if (type === 'following') {
       console.log('Loading following posts only...');
       
       const followingPosts = await Recipe.find({
         userId: { $in: [...following, userId] }
-      }).sort({ createdAt: -1 });
+      })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
       
       allPosts = followingPosts;
       
@@ -5188,7 +5191,10 @@ app.get('/api/feed', async (req, res) => {
       const groupPosts = await GroupPost.find({
         groupId: { $in: groupIds },
         isApproved: true
-      }).sort({ createdAt: -1 });
+      })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
       
       allPosts = groupPosts;
       
@@ -5197,16 +5203,16 @@ app.get('/api/feed', async (req, res) => {
 
       const followingPosts = await Recipe.find({
         userId: { $in: [...following, userId] }
-      }).sort({ createdAt: -1 });
-
-      console.log('Following posts:', followingPosts.length);
+      })
+      .sort({ createdAt: -1 })
+      .limit(parseInt(limit) / 2);
 
       const groupPosts = await GroupPost.find({
         groupId: { $in: groupIds },
         isApproved: true
-      }).sort({ createdAt: -1 });
-
-      console.log('Group posts:', groupPosts.length);
+      })
+      .sort({ createdAt: -1 })
+      .limit(parseInt(limit) / 2);
 
       allPosts = [...followingPosts, ...groupPosts];
     }
@@ -5249,11 +5255,12 @@ app.get('/api/feed', async (req, res) => {
     res.json(enrichedPosts);
 
   } catch (error) {
+    console.error('Feed error:', error);
     res.status(500).json({ message: 'Failed to fetch personalized feed' });
   }
 });
-// GROUPS
 
+// GROUPS
 app.get('/api/groups/my-posts', async (req, res) => {
   try {
     console.log('=== User Groups Posts Request ===');

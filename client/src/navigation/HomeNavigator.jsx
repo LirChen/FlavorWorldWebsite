@@ -10,7 +10,7 @@ import UserSearchScreen from '../pages/Chats/UserSearchScreen';
 import GroupChatSettingsScreen from '../pages/Chats/GroupChatSettingsScreen';
 import NotificationsScreen from '../pages/Notifications/NotificationsScreen';
 import PostModalScreen from '../pages/posts/PostModalScreen';
-import CreateGroupComponent from '../pages/Groups/CreateGroupComponent';
+import CreateGroupComponent from '../components/groups/CreateGroupComponent';
 import GroupsScreen from '../pages/Groups/GroupsScreen';
 import ProfileScreen from '../pages/Profile/ProfileScreen';
 import EditProfileScreen from '../pages/Profile/EditProfileScreen';
@@ -34,33 +34,33 @@ export default function HomeNavigator() {
       <Route path="/home" element={<HomeScreen />} />
       <Route path="/search" element={<SearchScreen />} />
       <Route path="/notifications" element={<NotificationsScreen />} />
-      
-      {/* Profile Routes */}
-      <Route path="/profile" element={<ProfileScreen />} />
-      <Route path="/profile/edit" element={<EditProfileScreen />} />
-      <Route path="/profile/statistics" element={<UserStatisticsScreen />} />
 
       {/* Post Routes */}
       <Route path="/edit-post" element={<EditPostScreen />} />
       <Route path="/post/:postId" element={<PostModalScreen />} />
 
-      {/* Groups Routes */}
-      <Route path="/groups" element={<GroupsScreen />} />
-      <Route path="/create-group" element={<CreateGroupComponent />} />
-      <Route path="/group/:groupId" element={<GroupDetailsScreen />} />
-      <Route path="/group/:groupId/admin-requests" element={<GroupAdminRequestsScreen />} />
-      <Route path="/group/:groupId/members" element={<GroupMembersScreen />} />
-      <Route path="/group/:groupId/settings" element={<GroupSettingsScreen />} />
-
+      {/* Profile Routes */}
+      <Route path="/profile" element={<ProfileScreen />} />
+      <Route path="/profile/edit" element={<EditProfileScreen />} />
+      <Route path="/profile/statistics" element={<UserStatisticsScreen />} />
+      
       {/* Chat Routes */}
       <Route path="/chats" element={<ChatListScreen />} />
-      <Route path="/chat/:chatId" element={<ChatConversationScreen />} />
       <Route path="/chat/search" element={<UserSearchScreen />} />
+      <Route path="/chat/:chatId" element={<ChatConversationScreen />} />
       
       {/* Group Chat Routes */}
       <Route path="/group-chat/create" element={<GroupChatCreationScreen />} />
       <Route path="/group-chat/:chatId" element={<GroupChatConversationScreen />} />
       <Route path="/group-chat/:chatId/settings" element={<GroupChatSettingsScreen />} />
+      
+      {/* Groups Routes */}
+      <Route path="/groups" element={<GroupsScreen />} />
+      <Route path="/group/create" element={<CreateGroupComponent />} />
+      <Route path="/group/:groupId" element={<GroupDetailsScreen />} />
+      <Route path="/group/:groupId/settings" element={<GroupSettingsScreen />} />
+      <Route path="/group/:groupId/members" element={<GroupMembersScreen />} />
+      <Route path="/group/:groupId/requests" element={<GroupAdminRequestsScreen />} />
 
       {/* Catch all - redirect to home */}
       <Route path="*" element={<Navigate to="/home" replace />} />
