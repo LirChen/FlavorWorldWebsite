@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -36,7 +36,16 @@ const ProfileScreen = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { currentUser, logout } = useAuth();
-  const userId = searchParams.get('userId') || currentUser?.id || currentUser?._id;
+  
+  const userId = useMemo(
+    () => searchParams.get('userId') || currentUser?.id || currentUser?._id,
+    [searchParams, currentUser?.id, currentUser?._id]
+  );
+  
+  const isOwnProfile = useMemo(
+    () => userId === (currentUser?.id || currentUser?._id),
+    [userId, currentUser?.id, currentUser?._id]
+  );
   
   const [profileUser, setProfileUser] = useState(null);
   const [userPosts, setUserPosts] = useState([]);
@@ -58,187 +67,172 @@ const ProfileScreen = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
 
-  const isOwnProfile = userId === (currentUser?.id || currentUser?._id);
-
   useEffect(() => {
-    loadProfileData();
-  }, [userId]);
+    let canceled = false;
 
-  const loadProfileData = async () => {
-    setLoading(true);
-    try {
-      if (isOwnProfile) {
-        setProfileUser(currentUser);
-      } else {
-        const userResult = await userService.getUserProfile(userId);
-        
-        if (userResult.success) {
-          setProfileUser(userResult.data);
-          await loadFollowStatus();
-        } else {
-          alert('Failed to load user profile');
-          navigate(-1);
-          return;
-        }
-      }
-
-      await loadUserPosts();
-    } catch (error) {
-      alert('Failed to load profile');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadFollowStatus = async () => {
-    if (isOwnProfile || !currentUser?.id) return;
-    
-    try {
-      const result = await chatService.getFollowStatus(
-        userId, 
-        currentUser.id || currentUser._id
-      );
+    const loadAllData = async () => {
+      setLoading(true);
       
-      if (result.success) {
-        setIsFollowing(result.data.isFollowing);
-        setStats(prev => ({
-          ...prev,
-          followersCount: result.data.followersCount
-        }));
-      }
-    } catch (error) {
-      console.error('Failed to load follow status:', error);
-    }
-  };
-
-  const loadUserGroupPosts = async () => {
-    try {
-      const groupsResult = await groupService.getAllGroups(userId);
-      
-      if (!groupsResult.success) {
-        return { success: false, data: [] };
-      }
-
-      const userGroups = groupsResult.data.filter(group => 
-        groupService.isMember(group, userId)
-      );
-
-      let allGroupPosts = [];
-      
-      for (const group of userGroups) {
-        try {
-          const groupPostsResult = await groupService.getGroupPosts(group._id, userId);
-          
-          if (groupPostsResult.success && groupPostsResult.data) {
-            const userPostsInGroup = groupPostsResult.data.filter(post => 
-              post.userId === userId || 
-              post.user?.id === userId || 
-              post.user?._id === userId
-            );
-            
-            const postsWithGroupInfo = userPostsInGroup.map(post => ({
-              ...post,
-              groupName: group.name,
-              groupId: group._id
-            }));
-            
-            allGroupPosts = [...allGroupPosts, ...postsWithGroupInfo];
-          }
-        } catch (groupPostError) {
-          continue;
-        }
-      }
-
-      return {
-        success: true,
-        data: allGroupPosts
-      };
-      
-    } catch (error) {
-      return { success: false, data: [] };
-    }
-  };
-
-  const loadUserPosts = async () => {
-    try {
-      const regularPostsResult = await recipeService.getAllRecipes();
-      let allPosts = [];
-      
-      if (regularPostsResult.success) {
-        const regularPosts = Array.isArray(regularPostsResult.data) ? regularPostsResult.data : [];
-        const userRegularPosts = regularPosts.filter(post => 
-          post.userId === userId || 
-          post.user?.id === userId || 
-          post.user?._id === userId
-        );
-        
-        const markedRegularPosts = userRegularPosts.map(post => ({
-          ...post,
-          postSource: 'personal'
-        }));
-        
-        allPosts = [...markedRegularPosts];
-      }
-
       try {
-        const groupPostsResult = await loadUserGroupPosts();
+        if (isOwnProfile) {
+          if (canceled) return;
+          setProfileUser(currentUser);
+        } else {
+          const userResult = await userService.getUserProfile(userId);
+          if (canceled) return;
+          
+          if (userResult.success) {
+            setProfileUser(userResult.data);
+            
+            try {
+              const followResult = await chatService.getFollowStatus(
+                userId, 
+                currentUser.id || currentUser._id
+              );
+              if (canceled) return;
+              
+              if (followResult.success) {
+                setIsFollowing(followResult.data.isFollowing);
+                setStats(prev => ({
+                  ...prev,
+                  followersCount: followResult.data.followersCount
+                }));
+              }
+            } catch (error) {
+              console.error('Failed to load follow status:', error);
+            }
+          } else {
+            alert('Failed to load user profile');
+            navigate(-1);
+            return;
+          }
+        }
+
+        const regularPostsResult = await recipeService.getAllRecipes();
+        if (canceled) return;
         
-        if (groupPostsResult.success && groupPostsResult.data) {
-          const userGroupPosts = groupPostsResult.data.map(post => ({
+        let allPosts = [];
+        
+        if (regularPostsResult.success) {
+          const regularPosts = Array.isArray(regularPostsResult.data) 
+            ? regularPostsResult.data 
+            : [];
+          const userRegularPosts = regularPosts.filter(post => 
+            post.userId === userId || 
+            post.user?.id === userId || 
+            post.user?._id === userId
+          );
+          
+          const markedRegularPosts = userRegularPosts.map(post => ({
             ...post,
-            postSource: 'group'
+            postSource: 'personal'
           }));
           
-          allPosts = [...allPosts, ...userGroupPosts];
+          allPosts = [...markedRegularPosts];
         }
-      } catch (groupError) {
-        console.error('Could not load group posts:', groupError);
-      }
 
-      const sortedPosts = allPosts.sort((a, b) => 
-        new Date(b.createdAt) - new Date(a.createdAt)
-      );
+        try {
+          const groupsResult = await groupService.getAllGroups(userId);
+          if (canceled) return;
+          
+          if (groupsResult.success) {
+            const userGroups = groupsResult.data.filter(group => 
+              groupService.isMember(group, userId)
+            );
 
-      setUserPosts(sortedPosts);
-      await calculateUserStatistics(sortedPosts);
-      
-    } catch (error) {
-      console.error('Failed to load user posts:', error);
-    }
-  };
+            let allGroupPosts = [];
+            
+            for (const group of userGroups) {
+              try {
+                const groupPostsResult = await groupService.getGroupPosts(group._id, userId);
+                if (canceled) return;
+                
+                if (groupPostsResult.success && groupPostsResult.data) {
+                  const userPostsInGroup = groupPostsResult.data.filter(post => 
+                    post.userId === userId || 
+                    post.user?.id === userId || 
+                    post.user?._id === userId
+                  );
+                  
+                  const postsWithGroupInfo = userPostsInGroup.map(post => ({
+                    ...post,
+                    groupName: group.name,
+                    groupId: group._id,
+                    postSource: 'group'
+                  }));
+                  
+                  allGroupPosts = [...allGroupPosts, ...postsWithGroupInfo];
+                }
+              } catch (groupPostError) {
+                console.error('Error loading group posts:', groupPostError);
+                continue;
+              }
+            }
 
-  const calculateUserStatistics = async (posts) => {
-    try {
-      const statsData = statisticsService.processRealUserData(posts, userId);
-      
-      let followersCount = 0;
-      try {
-        const followersResult = await statisticsService.getFollowersGrowth(userId);
-        if (followersResult.success && followersResult.data) {
-          followersCount = followersResult.currentFollowersCount || 0;
+            allPosts = [...allPosts, ...allGroupPosts];
+          }
+        } catch (groupError) {
+          console.error('Could not load group posts:', groupError);
         }
-      } catch (followersError) {
-        followersCount = 0;
+
+        const sortedPosts = allPosts.sort((a, b) => 
+          new Date(b.createdAt) - new Date(a.createdAt)
+        );
+
+        if (canceled) return;
+        setUserPosts(sortedPosts);
+
+        try {
+          const statsData = statisticsService.processRealUserData(sortedPosts, userId);
+          
+          let followersCount = 0;
+          try {
+            const followersResult = await statisticsService.getFollowersGrowth(userId);
+            if (canceled) return;
+            
+            if (followersResult.success && followersResult.data) {
+              followersCount = followersResult.currentFollowersCount || 0;
+            }
+          } catch (followersError) {
+            followersCount = 0;
+          }
+
+          if (canceled) return;
+          setStats({
+            postsCount: statsData.totalPosts,
+            likesCount: statsData.totalLikes,
+            followersCount: followersCount
+          });
+
+        } catch (error) {
+          const totalLikes = sortedPosts.reduce((sum, post) => 
+            sum + (post.likes ? post.likes.length : 0), 0
+          );
+
+          if (canceled) return;
+          setStats(prev => ({
+            ...prev,
+            postsCount: sortedPosts.length,
+            likesCount: totalLikes
+          }));
+        }
+        
+      } catch (error) {
+        if (canceled) return;
+        console.error('Failed to load profile:', error);
+        alert('Failed to load profile');
+      } finally {
+        if (canceled) return;
+        setLoading(false);
       }
+    };
 
-      setStats({
-        postsCount: statsData.totalPosts,
-        likesCount: statsData.totalLikes,
-        followersCount: followersCount
-      });
+    loadAllData();
 
-    } catch (error) {
-      const totalLikes = posts.reduce((sum, post) => 
-        sum + (post.likes ? post.likes.length : 0), 0
-      );
-
-      setStats(prev => ({
-        ...prev,
-        postsCount: posts.length,
-        likesCount: totalLikes
-      }));
-    }
-  };
+    return () => {
+      canceled = true;
+    };
+  }, [userId, isOwnProfile, currentUser, navigate]);
 
   const handleFollowToggle = async () => {
     if (isFollowLoading || !currentUser?.id) return;
@@ -340,9 +334,9 @@ const ProfileScreen = () => {
     }
   };
 
-  const handleRefreshData = useCallback(() => {
-    loadUserPosts();
-  }, [userId]);
+  const handleRefreshData = () => {
+    window.location.reload();
+  };
 
   const getFilteredPosts = () => {
     switch (selectedTab) {
