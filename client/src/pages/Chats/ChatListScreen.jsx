@@ -27,24 +27,7 @@ const ChatListScreen = () => {
 
   useEffect(() => {
     loadChats();
-    initializeSocket();
-    
-    return () => {
-      chatService.disconnect();
-    };
   }, []);
-
-  const initializeSocket = async () => {
-    if (currentUser?.id || currentUser?._id) {
-      await chatService.initializeSocket(currentUser.id || currentUser._id);
-      
-      const unsubscribe = chatService.onMessage((message) => {
-        updateChatWithNewMessage(message);
-      });
-      
-      return unsubscribe;
-    }
-  };
 
   const loadChats = async () => {
     try {

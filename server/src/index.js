@@ -993,7 +993,7 @@ app.post('/api/groups', upload.any(), async (req, res) => {
       pendingRequests: [],
       settings: {
         allowMemberPosts: formData.allowMemberPosts !== 'false',
-        requireApproval: formData.isPrivate === 'true' || formData.isPrivate === true ? (formData.requireApproval === 'true' || formData.requireApproval === true) : false, // קבוצות ציבוריות לא דורשות אישור כברירת מחדל
+        requireApproval: formData.isPrivate === 'true' || formData.isPrivate === true ? (formData.requireApproval === 'true' || formData.requireApproval === true) : false, 
         allowInvites: formData.allowInvites !== 'false'
       }
     };
@@ -2889,6 +2889,7 @@ app.post('/api/chats/:chatId/messages', async (req, res) => {
     res.status(500).json({ message: 'Failed to send message' });
   }
 });
+
 //  SOCKET.IO 
 
 io.on('connection', (socket) => {
