@@ -23,6 +23,7 @@ import { useAuth } from '../../services/AuthContext';
 import { groupService } from '../../services/groupService';
 import { recipeService } from '../../services/recipeService';
 import PostComponent from '../../components/common/PostComponent';
+import CreatePostComponent from '../../components/common/CreatePostComponent';
 import UserAvatar from '../../components/common/UserAvatar';
 
 const GroupDetailsScreen = () => {
@@ -156,6 +157,7 @@ const GroupDetailsScreen = () => {
   };
 
   const handlePostCreated = useCallback(() => {
+    setShowCreateModal(false);
     loadGroupPosts();
   }, [loadGroupPosts]);
 
@@ -444,19 +446,19 @@ const GroupDetailsScreen = () => {
               />
               <button 
                 className="create-post-input"
-                onClick={() => navigate(`/recipe/create?groupId=${groupId}`)}
+                onClick={() => setShowCreateModal(true)}
               >
                 Share a recipe with {group.name}...
               </button>
             </div>
             
             <div className="create-post-actions">
-              <button onClick={() => navigate(`/recipe/create?groupId=${groupId}`)}>
+              <button onClick={() => setShowCreateModal(true)}>
                 <UtensilsCrossed size={20} />
                 <span>Recipe</span>
               </button>
               
-              <button onClick={() => navigate(`/recipe/create?groupId=${groupId}`)}>
+              <button onClick={() => setShowCreateModal(true)}>
                 <Camera size={20} />
                 <span>Photo</span>
               </button>
@@ -477,7 +479,7 @@ const GroupDetailsScreen = () => {
                 }
               </p>
               {isMember && (group?.settings?.allowMemberPosts ?? group?.allowMemberPosts ?? true) && (
-                <button onClick={() => navigate(`/recipe/create?groupId=${groupId}`)}>
+                <button onClick={() => setShowCreateModal(true)}>
                   Share Recipe
                 </button>
               )}
@@ -499,6 +501,28 @@ const GroupDetailsScreen = () => {
           )}
         </div>
       </div>
+
+      {/* Create Post Modal */}
+      {showCreateModal && (
+        <div className="modal-overlay" onClick={() => setShowCreateModal(false)}>
+          <div className="modal-container" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Share Recipe to {group?.name}</h2>
+              <button onClick={() => setShowCreateModal(false)}>
+                <X size={24} />
+              </button>
+            </div>
+            <div className="modal-body">
+              <CreatePostComponent
+                currentUser={currentUser}
+                groupId={groupId}
+                groupName={group?.name}
+                onPostCreated={handlePostCreated}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
