@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-const recipeSchema = new mongoose.Schema({
+const RecipeSchema = new mongoose.Schema({
   title: {
     type: String,
     required: true,
@@ -24,8 +24,7 @@ const recipeSchema = new mongoose.Schema({
     enum: [
       'Asian', 'Italian', 'Mexican', 'Indian', 'Mediterranean', 
       'American', 'French', 'Chinese', 'Japanese', 'Thai', 
-      'Middle Eastern', 'Greek', 'Spanish', 'Korean', 'Vietnamese', 
-      'Dessert' 
+      'Middle Eastern', 'Greek', 'Spanish', 'Korean', 'Vietnamese', 'Dessert'
     ]
   },
   meatType: {
@@ -47,19 +46,9 @@ const recipeSchema = new mongoose.Schema({
     min: 1
   },
   image: {
-    type: String,
-    maxlength: 10000000, 
+    type: String, 
+    maxlength: 10000000,
     default: null
-  },
-  video: {
-    type: String,
-    maxlength: 50000000, 
-    default: null
-  },
-  mediaType: {
-    type: String,
-    enum: ['image', 'video', 'none'],
-    default: 'none'
   },
   userId: {
     type: String, 
@@ -102,4 +91,4 @@ const recipeSchema = new mongoose.Schema({
   timestamps: true
 });
 
-module.exports = mongoose.model('Recipe', recipeSchema);
+module.exports = mongoose.model('Recipe', RecipeSchema);
