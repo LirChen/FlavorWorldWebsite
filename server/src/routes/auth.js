@@ -71,10 +71,28 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ message: 'Invalid email or password' });
     }
 
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    let isPasswordValid = false;
+
+    const looksHashed = typeof user.password === 'string' && user.password.startsWith('$2b$');
+
+    if (looksHashed) {
+      isPasswordValid = await bcrypt.compare(password, user.password);
+    } else {
+      if (password === user.password) {
+        isPasswordValid = true;
+
+        const saltRounds = 12;
+        const hashedPassword = await bcrypt.hash(password, saltRounds);
+        user.password = hashedPassword;
+        await user.save();
+        console.log(` Password for user ${user.email} has been securely hashed.`);
+      }
+    }
+
     if (!isPasswordValid) {
       return res.status(400).json({ message: 'Invalid email or password' });
     }
+
     const token = jwt.sign(
       { userId: user._id },
       process.env.JWT_SECRET || 'your-secret-key',
@@ -87,7 +105,9 @@ router.post('/login', async (req, res) => {
       user: {
         id: user._id,
         fullName: user.fullName,
-        email: user.email
+        email: user.email,
+        bio: user.bio,
+        avatar: user.avatar
       }
     });
 
@@ -96,6 +116,7 @@ router.post('/login', async (req, res) => {
     res.status(500).json({ message: 'Server error during login' });
   }
 });
+
 
 router.post('/forgotpassword', async (req, res) => {
   try {
