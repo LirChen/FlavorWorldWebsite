@@ -12,6 +12,8 @@
     "test:coverage": "cross-env NODE_ENV=test vitest run --coverage",
     "test:chats": "cross-env NODE_ENV=test vitest run tests/routes/chats.test.js",
     "test:chats:watch": "cross-env NODE_ENV=test vitest watch tests/routes/chats.test.js",
+    "test:auth": "cross-env NODE_ENV=test vitest run tests/routes/auth.test.js",
+    "test:auth:watch": "cross-env NODE_ENV=test vitest watch tests/routes/auth.test.js",
     "test:unit": "cross-env NODE_ENV=test vitest run tests/routes/",
     "test:integration": "cross-env NODE_ENV=test vitest run tests/integration/",
     "test:e2e": "cross-env NODE_ENV=test vitest run tests/e2e/",
