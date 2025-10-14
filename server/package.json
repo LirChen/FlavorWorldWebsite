@@ -19,6 +19,7 @@
     "test:unit": "cross-env NODE_ENV=test vitest run tests/routes/",
     "test:feed": "cross-env NODE_ENV=test vitest run tests/routes/feed.test.js",
     "test:feed:watch": "cross-env NODE_ENV=test vitest watch tests/routes/feed.test.js",
+    "test:notifications": "cross-env NODE_ENV=test vitest run tests/routes/notifications.test.js",
     "test:integration": "cross-env NODE_ENV=test vitest run tests/integration/",
     "test:e2e": "cross-env NODE_ENV=test vitest run tests/e2e/",
     "test:all": "npm run test:unit && npm run test:integration && npm run test:e2e",
