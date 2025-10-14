@@ -1,12 +1,12 @@
-const mongoose = require('mongoose');
-const { isMongoConnected } = require('../config/database');
-const Message = require('../models/Message');
-const GroupChatMessage = require('../models/GroupChatMessage');
-const PrivateChat = require('../models/PrivateChat');
-const GroupChat = require('../models/GroupChat');
-const User = require('../models/User');
+import mongoose from 'mongoose';
+import { isMongoConnected } from '../config/database.js';
+import Message from '../models/Message.js';
+import GroupChatMessage from '../models/GroupChatMessage.js';
+import PrivateChat from '../models/PrivateChat.js';
+import GroupChat from '../models/GroupChat.js';
+import User from '../models/User.js';
 
-module.exports = (io) => {
+export default (io) => {
   io.on('connection', (socket) => {
     console.log(' User connected:', socket.id);
     

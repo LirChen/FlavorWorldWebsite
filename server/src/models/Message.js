@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const MessageSchema = new mongoose.Schema({
   chatId: { type: String, required: true },
@@ -12,4 +12,4 @@ const MessageSchema = new mongoose.Schema({
   }]
 }, { timestamps: true });
 
-module.exports = mongoose.model('Message', MessageSchema);
+export default mongoose.models.Message || mongoose.model('Message', MessageSchema);

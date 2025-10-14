@@ -1,7 +1,8 @@
-const express = require('express');
+import express from 'express';
+import upload from '../middleware/upload.js';
+import { isMongoConnected } from '../config/database.js';
+
 const router = express.Router();
-const upload = require('../middleware/upload');
-const { isMongoConnected } = require('../config/database');
 
 // UPLOAD AVATAR
 router.post('/avatar', upload.single('avatar'), async (req, res) => {
@@ -52,4 +53,4 @@ router.post('/avatar', upload.single('avatar'), async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

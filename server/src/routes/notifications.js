@@ -1,7 +1,8 @@
-const express = require('express');
+import express from 'express';
+import { isMongoConnected } from '../config/database.js';
+import Notification from '../models/Notification.js';
+
 const router = express.Router();
-const { isMongoConnected } = require('../config/database');
-const Notification = require('../models/Notification');
 
 // GET ALL NOTIFICATIONS
 router.get('/', async (req, res) => {
@@ -128,4 +129,4 @@ router.get('/unread-count', async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

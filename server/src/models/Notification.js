@@ -1,18 +1,18 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const NotificationSchema = new mongoose.Schema({
-  type: { 
-    type: String, 
+  type: {
+    type: String,
     required: true,
     enum: ['like', 'comment', 'follow', 'group_post', 'group_join_request', 'group_request_approved']
   },
-  fromUserId: { type: String, required: true }, 
-  toUserId: { type: String, required: true },   
+  fromUserId: { type: String, required: true },
+  toUserId: { type: String, required: true },
   message: { type: String, required: true },
-  postId: { type: String }, 
+  postId: { type: String },
   postTitle: { type: String },
   postImage: { type: String },
-  groupId: { type: String }, 
+  groupId: { type: String },
   groupName: { type: String },
   read: { type: Boolean, default: false },
   fromUser: {
@@ -21,4 +21,4 @@ const NotificationSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
-module.exports = mongoose.model('Notification', NotificationSchema);
+export default mongoose.models.Notification || mongoose.model('Notification', NotificationSchema);

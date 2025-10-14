@@ -1,34 +1,57 @@
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const http = require('http');
-const { Server } = require('socket.io');
+import dotenv from 'dotenv';
+dotenv.config();
+
+import express from 'express';
+import cors from 'cors';
+import http from 'http';
+import { Server } from 'socket.io';
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+
+// Socket.IO - only if not in test mode
+let io;
+if (process.env.NODE_ENV !== 'test') {
+  io = new Server(server, {
+    cors: {
+      origin: "*",
+      methods: ["GET", "POST"]
+    }
+  });
+  console.log('🔌 Socket.IO initialized');
+} else {
+  io = {
+    on: () => {},
+    emit: () => {},
+    to: () => ({ emit: () => {} })
+  };
+  console.log('🧪 Socket.IO mocked for tests');
+}
 
 // Middleware
 app.use(cors());
-app.use(express.json({ limit: '50mb' })); 
-app.use(express.urlencoded({ extended: true, limit: '50mb' })); 
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-app.use((req, res, next) => {
-  console.log(`${req.method} ${req.path} - Content-Type: ${req.headers['content-type']}`);
-  next();
-});
+// Only log in non-test environments
+if (process.env.NODE_ENV !== 'test') {
+  app.use((req, res, next) => {
+    console.log(`${req.method} ${req.path} - Content-Type: ${req.headers['content-type']}`);
+    next();
+  });
+}
 
 // Import routes
-const authRoutes = require('./routes/auth');
-const userRoutes = require('./routes/users');
-const recipeRoutes = require('./routes/recipes');
-const groupRoutes = require('./routes/groups');
-const groupPostRoutes = require('./routes/groupPosts');
-const chatRoutes = require('./routes/chats');
-const groupChatRoutes = require('./routes/groupChats');
-const notificationRoutes = require('./routes/notifications');
-const feedRoutes = require('./routes/feed');
-const uploadRoutes = require('./routes/upload');
+import authRoutes from './routes/auth.js';
+import userRoutes from './routes/users.js';
+import recipeRoutes from './routes/recipes.js';
+import groupRoutes from './routes/groups.js';
+import groupPostRoutes from './routes/groupPosts.js';
+import chatRoutes from './routes/chats.js';
+import groupChatRoutes from './routes/groupChats.js';
+import notificationRoutes from './routes/notifications.js';
+import feedRoutes from './routes/feed.js';
+import uploadRoutes from './routes/upload.js';
 
 // Mount routes
 app.use('/api/auth', authRoutes);
@@ -44,63 +67,73 @@ app.use('/api/feed', feedRoutes);
 app.use('/api/following', feedRoutes);
 app.use('/api/upload', uploadRoutes);
 
-// Socket.IO handlers
-const socketHandlers = require('./socket/socketHandlers');
-socketHandlers(io);
-
-console.log('Notifications activated for all user actions');
+// Socket.IO handlers - only if not in test
+if (process.env.NODE_ENV !== 'test') {
+  const { default: socketHandlers } = await import('./socket/socketHandlers.js');
+  socketHandlers(io);
+  console.log('Notifications activated for all user actions');
+}
 
 // Basic routes
 app.get('/', (req, res) => {
   res.send('Recipe Social Network API Server is running');
 });
 
-app.get('/api/health', (req, res) => {
-  const { isMongoConnected } = require('./config/database');
+app.get('/api/health', async (req, res) => {
+  const { isMongoConnected } = await import('./config/database.js');
   res.json({
     status: 'OK',
+    environment: process.env.NODE_ENV || 'development',
     mongoConnected: isMongoConnected(),
     timestamp: new Date().toISOString()
   });
 });
 
-app.get('/api/test-delete', (req, res) => {
-  const User = require('./models/User');
-  const Recipe = require('./models/Recipe');
-  const Group = require('./models/Group');
-  const GroupPost = require('./models/GroupPost');
-  const PrivateChat = require('./models/PrivateChat');
-  const Message = require('./models/Message');
-  const GroupChat = require('./models/GroupChat');
-  const GroupChatMessage = require('./models/GroupChatMessage');
-  const Notification = require('./models/Notification');
-  
-  res.json({
-    success: true,
-    message: 'Delete endpoints are available',
-    endpoints: [
-      'DELETE /api/auth/delete-account',
-      'DELETE /api/user/delete', 
-      'DELETE /api/auth/delete-user'
-    ],
-    modelsAvailable: {
-      User: !!User,
-      Recipe: !!Recipe,
-      Group: !!Group,
-      GroupPost: !!GroupPost,
-      PrivateChat: !!PrivateChat,
-      Message: !!Message,
-      GroupChat: !!GroupChat,
-      GroupChatMessage: !!GroupChatMessage,
-      Notification: !!Notification
-    },
-    timestamp: new Date()
+// Test endpoint - only in dev/test
+if (process.env.NODE_ENV !== 'production') {
+  app.get('/api/test-delete', async (req, res) => {
+    const { default: User } = await import('./models/User.js');
+    const { default: Recipe } = await import('./models/Recipe.js');
+    const { default: Group } = await import('./models/Group.js');
+    const { default: GroupPost } = await import('./models/GroupPost.js');
+    const { default: PrivateChat } = await import('./models/PrivateChat.js');
+    const { default: Message } = await import('./models/Message.js');
+    const { default: GroupChat } = await import('./models/GroupChat.js');
+    const { default: GroupChatMessage } = await import('./models/GroupChatMessage.js');
+    const { default: Notification } = await import('./models/Notification.js');
+    
+    res.json({
+      success: true,
+      message: 'Delete endpoints are available',
+      endpoints: [
+        'DELETE /api/auth/delete-account',
+        'DELETE /api/user/delete',
+        'DELETE /api/auth/delete-user'
+      ],
+      modelsAvailable: {
+        User: !!User,
+        Recipe: !!Recipe,
+        Group: !!Group,
+        GroupPost: !!GroupPost,
+        PrivateChat: !!PrivateChat,
+        Message: !!Message,
+        GroupChat: !!GroupChat,
+        GroupChatMessage: !!GroupChatMessage,
+        Notification: !!Notification
+      },
+      timestamp: new Date()
+    });
   });
-});
+}
 
 // Error handling
 app.use((error, req, res, next) => {
-  res.status(500).json({ message: 'Something went wrong!' });
+  console.error('Error:', error);
+  res.status(500).json({
+    message: process.env.NODE_ENV === 'production'
+      ? 'Something went wrong!'
+      : error.message
+  });
 });
 
-module.exports = { app, server, io };
+export { app, server, io };

@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const connectDB = async () => {
   if (process.env.MONGODB_URI) {
@@ -23,4 +23,4 @@ process.on('SIGINT', async () => {
   process.exit(0);
 });
 
-module.exports = { connectDB, isMongoConnected };
+export { connectDB, isMongoConnected };

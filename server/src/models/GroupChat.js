@@ -1,10 +1,10 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const GroupChatSchema = new mongoose.Schema({
   name: { type: String, required: true, maxlength: 100 },
   description: { type: String, maxlength: 500 },
-  image: { type: String, maxlength: 10000000 }, 
-  adminId: { type: String, required: true }, 
+  image: { type: String, maxlength: 10000000 },
+  adminId: { type: String, required: true },
   participants: [{
     userId: { type: String, required: true },
     userName: { type: String, required: true },
@@ -25,10 +25,10 @@ const GroupChatSchema = new mongoose.Schema({
     default: {}
   },
   settings: {
-    allowMemberInvites: { type: Boolean, default: false }, 
-    allowNameChange: { type: Boolean, default: true }, 
+    allowMemberInvites: { type: Boolean, default: false },
+    allowNameChange: { type: Boolean, default: true },
     allowMemberLeave: { type: Boolean, default: true }
   }
 }, { timestamps: true });
 
-module.exports = mongoose.model('GroupChat', GroupChatSchema);
+export default mongoose.models.GroupChat || mongoose.model('GroupChat', GroupChatSchema);
