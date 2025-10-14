@@ -22,6 +22,8 @@
     "test:notifications": "cross-env NODE_ENV=test vitest run tests/routes/notifications.test.js",
     "test:groupChats": "cross-env NODE_ENV=test vitest run tests/routes/groupChats.test.js",
     "test:groupChats:watch": "cross-env NODE_ENV=test vitest watch tests/routes/groupChats.test.js",
+    "test:groups": "cross-env NODE_ENV=test vitest run tests/routes/groups.test.js",
+    "test:groups:watch": "cross-env NODE_ENV=test vitest watch tests/routes/groups.test.js",
     "test:integration": "cross-env NODE_ENV=test vitest run tests/integration/",
     "test:e2e": "cross-env NODE_ENV=test vitest run tests/e2e/",
     "test:all": "npm run test:unit && npm run test:integration && npm run test:e2e",
