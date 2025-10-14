@@ -1,11 +1,12 @@
-const express = require('express');
+import express from 'express';
+import mongoose from 'mongoose';
+import { isMongoConnected } from '../config/database.js';
+import User from '../models/User.js';
+import Recipe from '../models/Recipe.js';
+import Group from '../models/Group.js';
+import GroupPost from '../models/GroupPost.js';
+
 const router = express.Router();
-const mongoose = require('mongoose');
-const { isMongoConnected } = require('../config/database');
-const User = require('../models/User');
-const Recipe = require('../models/Recipe');
-const Group = require('../models/Group');
-const GroupPost = require('../models/GroupPost');
 
 // GET PERSONALIZED FEED
 router.get('/', async (req, res) => {
@@ -343,4 +344,4 @@ router.get('/posts', async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

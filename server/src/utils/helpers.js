@@ -1,8 +1,8 @@
-const Notification = require('../models/Notification');
-const { isMongoConnected } = require('../config/database');
+import Notification from '../models/Notification.js';
+import { isMongoConnected } from '../config/database.js';
 
 const generateResetCode = () => {
-  return Math.floor(100000 + Math.random() * 900000).toString(); 
+  return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
 const createNotification = async (notificationData) => {
@@ -22,7 +22,4 @@ const createNotification = async (notificationData) => {
   }
 };
 
-module.exports = {
-  generateResetCode,
-  createNotification
-};
+export { generateResetCode, createNotification };

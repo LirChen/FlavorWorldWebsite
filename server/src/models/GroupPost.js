@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const GroupPostSchema = new mongoose.Schema({
   title: { type: String, required: true },
@@ -11,7 +11,7 @@ const GroupPostSchema = new mongoose.Schema({
   servings: { type: Number, default: 1 },
   image: { type: String, maxlength: 10000000 },
   userId: { type: String, required: true },
-  groupId: { type: String, required: true }, 
+  groupId: { type: String, required: true },
   likes: [{ type: String }],
   comments: [{
     userId: String,
@@ -20,7 +20,7 @@ const GroupPostSchema = new mongoose.Schema({
     text: String,
     createdAt: { type: Date, default: Date.now }
   }],
-  isApproved: { type: Boolean, default: false } 
+  isApproved: { type: Boolean, default: false }
 }, { timestamps: true });
 
-module.exports = mongoose.model('GroupPost', GroupPostSchema);
+export default mongoose.models.GroupPost || mongoose.model('GroupPost', GroupPostSchema);

@@ -1,29 +1,16 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const RecipeSchema = new mongoose.Schema({
-  title: {
-    type: String,
-    required: true,
-    trim: true
-  },
-  description: {
-    type: String,
-    required: true
-  },
-  ingredients: {
-    type: String,
-    required: true
-  },
-  instructions: {
-    type: String,
-    required: true
-  },
+  title: { type: String, required: true, trim: true },
+  description: { type: String, required: true },
+  ingredients: { type: String, required: true },
+  instructions: { type: String, required: true },
   category: {
     type: String,
     required: true,
     enum: [
-      'Asian', 'Italian', 'Mexican', 'Indian', 'Mediterranean', 
-      'American', 'French', 'Chinese', 'Japanese', 'Thai', 
+      'Asian', 'Italian', 'Mexican', 'Indian', 'Mediterranean',
+      'American', 'French', 'Chinese', 'Japanese', 'Thai',
       'Middle Eastern', 'Greek', 'Spanish', 'Korean', 'Vietnamese', 'Dessert'
     ]
   },
@@ -31,64 +18,24 @@ const RecipeSchema = new mongoose.Schema({
     type: String,
     required: true,
     enum: [
-      'Vegetarian', 'Vegan', 'Chicken', 'Beef', 'Pork', 
+      'Vegetarian', 'Vegan', 'Chicken', 'Beef', 'Pork',
       'Fish', 'Seafood', 'Lamb', 'Turkey', 'Mixed'
     ]
   },
-  prepTime: {
-    type: Number,
-    required: true,
-    min: 0 
-  },
-  servings: {
-    type: Number,
-    required: true,
-    min: 1
-  },
-  image: {
-    type: String, 
-    maxlength: 10000000,
-    default: null
-  },
-  userId: {
-    type: String, 
-    required: true
-  },
-  userName: {
-    type: String,
-    required: true
-  },
-  userAvatar: {
-    type: String,
-    default: null
-  },
-  likes: [{
-    type: String 
-  }],
+  prepTime: { type: Number, required: true, min: 0 },
+  servings: { type: Number, required: true, min: 1 },
+  image: { type: String, maxlength: 10000000, default: null },
+  userId: { type: String, required: true },
+  userName: { type: String, required: true },
+  userAvatar: { type: String, default: null },
+  likes: [{ type: String }],
   comments: [{
-    userId: {
-      type: String, 
-      required: true
-    },
-    userName: {
-      type: String,
-      required: true
-    },
-    userAvatar: {
-      type: String,
-      default: null
-    },
-    text: {
-      type: String,
-      required: true
-    },
-    createdAt: {
-      type: Date,
-      default: Date.now
-    }
+    userId: { type: String, required: true },
+    userName: { type: String, required: true },
+    userAvatar: { type: String, default: null },
+    text: { type: String, required: true },
+    createdAt: { type: Date, default: Date.now }
   }]
-}, {
-  timestamps: true
-});
+}, { timestamps: true });
 
-module.exports = mongoose.model('Recipe', RecipeSchema);
+export default mongoose.models.Recipe || mongoose.model('Recipe', RecipeSchema);

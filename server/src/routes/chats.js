@@ -1,10 +1,11 @@
-const express = require('express');
+import express from 'express';
+import mongoose from 'mongoose';
+import { isMongoConnected } from '../config/database.js';
+import PrivateChat from '../models/PrivateChat.js';
+import Message from '../models/Message.js';
+import User from '../models/User.js';
+
 const router = express.Router();
-const mongoose = require('mongoose');
-const { isMongoConnected } = require('../config/database');
-const PrivateChat = require('../models/PrivateChat');
-const Message = require('../models/Message');
-const User = require('../models/User');
 
 router.post('/private', async (req, res) => {
   try {
@@ -273,4 +274,4 @@ router.get('/unread-count', async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

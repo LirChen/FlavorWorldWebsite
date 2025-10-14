@@ -1,11 +1,12 @@
-const express = require('express');
+import express from 'express';
+import mongoose from 'mongoose';
+import { isMongoConnected } from '../config/database.js';
+import GroupChat from '../models/GroupChat.js';
+import GroupChatMessage from '../models/GroupChatMessage.js';
+import PrivateChat from '../models/PrivateChat.js';
+import User from '../models/User.js';
+
 const router = express.Router();
-const mongoose = require('mongoose');
-const { isMongoConnected } = require('../config/database');
-const GroupChat = require('../models/GroupChat');
-const GroupChatMessage = require('../models/GroupChatMessage');
-const PrivateChat = require('../models/PrivateChat');
-const User = require('../models/User');
 
 // CREATE GROUP CHAT
 router.post('/', async (req, res) => {
@@ -286,8 +287,6 @@ router.post('/:chatId/messages', async (req, res) => {
     res.status(500).json({ message: 'Failed to send message' });
   }
 });
-
-module.exports = router;
 
 // ADD PARTICIPANTS
 router.post('/:chatId/participants', async (req, res) => {
@@ -778,4 +777,4 @@ router.get('/available-users', async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

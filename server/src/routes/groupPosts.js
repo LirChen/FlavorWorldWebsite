@@ -1,12 +1,13 @@
-const express = require('express');
+import express from 'express';
+import mongoose from 'mongoose';
+import upload from '../middleware/upload.js';
+import { isMongoConnected } from '../config/database.js';
+import { createNotification } from '../utils/helpers.js';
+import Group from '../models/Group.js';
+import GroupPost from '../models/GroupPost.js';
+import User from '../models/User.js';
+
 const router = express.Router();
-const mongoose = require('mongoose');
-const upload = require('../middleware/upload');
-const { isMongoConnected } = require('../config/database');
-const { createNotification } = require('../utils/helpers');
-const Group = require('../models/Group');
-const GroupPost = require('../models/GroupPost');
-const User = require('../models/User');
 
 // CREATE GROUP POST
 router.post('/:groupId/posts', upload.any(), async (req, res) => {
@@ -364,8 +365,6 @@ router.delete('/:groupId/posts/:postId', async (req, res) => {
   }
 });
 
-module.exports = router;
-
 // LIKE GROUP POST
 router.post('/:groupId/posts/:postId/like', async (req, res) => {
   try {
@@ -666,4 +665,4 @@ router.delete('/:groupId/posts/:postId/comments/:commentId', async (req, res) =>
   }
 });
 
-module.exports = router;
+export default router;

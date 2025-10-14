@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const GroupChatMessageSchema = new mongoose.Schema({
   groupChatId: { type: String, required: true },
@@ -6,13 +6,13 @@ const GroupChatMessageSchema = new mongoose.Schema({
   senderName: { type: String, required: true },
   senderAvatar: { type: String },
   content: { type: String, required: true },
-  messageType: { type: String, default: 'text' }, 
+  messageType: { type: String, default: 'text' },
   readBy: [{
     userId: String,
     readAt: { type: Date, default: Date.now }
   }],
   isSystemMessage: { type: Boolean, default: false },
-  systemMessageType: { type: String } 
+  systemMessageType: { type: String }
 }, { timestamps: true });
 
-module.exports = mongoose.model('GroupChatMessage', GroupChatMessageSchema);
+export default mongoose.models.GroupChatMessage || mongoose.model('GroupChatMessage', GroupChatMessageSchema);

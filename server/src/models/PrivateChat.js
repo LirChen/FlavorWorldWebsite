@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const PrivateChatSchema = new mongoose.Schema({
   participants: [{
@@ -19,4 +19,4 @@ const PrivateChatSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
-module.exports = mongoose.model('PrivateChat', PrivateChatSchema);
+export default mongoose.models.PrivateChat || mongoose.model('PrivateChat', PrivateChatSchema);

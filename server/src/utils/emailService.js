@@ -1,4 +1,4 @@
-const emailTransporter = require('../config/email');
+import emailTransporter from '../config/email.js';
 
 const sendResetEmail = async (email, code) => {
   const mailOptions = {
@@ -58,4 +58,4 @@ const sendResetEmail = async (email, code) => {
   }
 };
 
-module.exports = { sendResetEmail };
+export { sendResetEmail };

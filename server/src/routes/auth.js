@@ -1,7 +1,8 @@
-const express = require('express');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+import express from 'express';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import User from '../models/User.js';
+
 const router = express.Router();
 
 router.post('/register', async (req, res) => {
@@ -85,7 +86,7 @@ router.post('/login', async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, saltRounds);
         user.password = hashedPassword;
         await user.save();
-        console.log(` Password for user ${user.email} has been securely hashed.`);
+        console.log(`✅ Password for user ${user.email} has been securely hashed.`);
       }
     }
 
@@ -117,7 +118,6 @@ router.post('/login', async (req, res) => {
   }
 });
 
-
 router.post('/forgotpassword', async (req, res) => {
   try {
     const { email } = req.body;
@@ -141,4 +141,4 @@ router.post('/forgotpassword', async (req, res) => {
   }
 });
 
-module.exports=router; 
+export default router;

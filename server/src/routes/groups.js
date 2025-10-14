@@ -1,11 +1,12 @@
-const express = require('express');
+import express from 'express';
+import mongoose from 'mongoose';
+import upload from '../middleware/upload.js';
+import { isMongoConnected } from '../config/database.js';
+import Group from '../models/Group.js';
+import GroupPost from '../models/GroupPost.js';
+import User from '../models/User.js';
+
 const router = express.Router();
-const mongoose = require('mongoose');
-const upload = require('../middleware/upload');
-const { isMongoConnected } = require('../config/database');
-const Group = require('../models/Group');
-const GroupPost = require('../models/GroupPost');
-const User = require('../models/User');
 
 // CREATE GROUP
 router.post('/', upload.any(), async (req, res) => {
@@ -229,8 +230,6 @@ router.get('/', async (req, res) => {
     res.status(500).json({ message: 'Failed to fetch groups' });
   }
 });
-
-module.exports = router;
 
 // GET SINGLE GROUP
 router.get('/:id', async (req, res) => {
@@ -589,8 +588,6 @@ router.delete('/:groupId/join', async (req, res) => {
     res.status(500).json({ message: 'Failed to cancel join request' });
   }
 });
-
-module.exports = router;
 
 // LEAVE GROUP (legacy endpoint)
 router.delete('/:id/members/:userId', async (req, res) => {
@@ -1023,4 +1020,4 @@ router.delete('/:groupId/members/:memberUserId', async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

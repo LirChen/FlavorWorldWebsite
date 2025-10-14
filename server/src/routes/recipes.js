@@ -1,10 +1,12 @@
-const express = require('express');
+import express from 'express';
+import Recipe from '../models/Recipe.js';
+import User from '../models/User.js';
+import jwt from 'jsonwebtoken';
+import multer from 'multer';
+import path from 'path';
+
 const router = express.Router();
-const Recipe = require('../models/Recipe');
-const User = require('../models/User');
-const jwt = require('jsonwebtoken');
-const multer = require('multer');
-const path = require('path');
+
 const authenticateToken = async (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
@@ -266,4 +268,4 @@ router.delete('/:id/comments/:commentId', authenticateToken, async (req, res) =>
   }
 });
 
-module.exports = router;
+export default router;
