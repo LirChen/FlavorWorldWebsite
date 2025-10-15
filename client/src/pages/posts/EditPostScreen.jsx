@@ -29,10 +29,18 @@ const MEAT_TYPES = [
 const EditPostScreen = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { postId } = useParams();
+  const { id } = useParams(); // Try to get from URL params
   const { currentUser } = useAuth();
   
-  const { postData, isGroupPost = false, groupId = null, groupName = null } = location.state || {};
+  const { 
+    postId: statePostId, 
+    postData, 
+    isGroupPost = false, 
+    groupId = null, 
+    groupName = null 
+  } = location.state || {};
+
+  const postId = statePostId || id || postData?._id || postData?.id;
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -51,6 +59,17 @@ const EditPostScreen = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showMeatTypeModal, setShowMeatTypeModal] = useState(false);
+
+  useEffect(() => {
+    if (!postId) {
+      console.error('No postId found');
+      alert('Post ID is missing. Cannot edit post.');
+      navigate(-1);
+      return;
+    }
+
+    console.log('Editing post:', postId);
+  }, [postId, navigate]);
 
   useEffect(() => {
     if (postData) {
@@ -117,6 +136,11 @@ const EditPostScreen = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    if (!postId) {
+      alert('Post ID is missing. Cannot update post.');
+      return;
+    }
+    
     if (!validateForm()) {
       alert('Please fill in all required fields');
       return;
@@ -139,16 +163,21 @@ const EditPostScreen = () => {
         userId: currentUser?.id || currentUser?._id,
       };
 
-      // Add original image if exists and no new image
       if (!imageFile && originalImage) {
         updateData.image = originalImage;
       }
 
+      console.log('Updating post:', postId);
+      console.log('Update data:', { ...updateData, image: updateData.image ? 'exists' : 'none' });
+      console.log('New image file:', imageFile ? imageFile.name : 'none');
+
       let result;
 
       if (isGroupPost && groupId) {
+        console.log('Updating group post');
         result = await groupService.updateGroupPost(groupId, postId, updateData, imageFile);
       } else {
+        console.log('Updating regular recipe');
         result = await recipeService.updateRecipe(postId, updateData, imageFile);
       }
 
@@ -157,9 +186,11 @@ const EditPostScreen = () => {
           ? `Recipe updated in ${groupName}!`
           : 'Recipe updated successfully!';
 
+        console.log('Update successful');
         alert(successMessage);
         navigate(-1);
       } else {
+        console.error('Update failed:', result?.message);
         alert(result?.message || 'Failed to update recipe. Please try again.');
       }
     } catch (error) {
@@ -392,7 +423,7 @@ const EditPostScreen = () => {
         <button
           type="submit"
           className="submit-btn"
-          disabled={isLoading}
+          disabled={isLoading || !postId}
         >
           {isLoading ? (
             <>
