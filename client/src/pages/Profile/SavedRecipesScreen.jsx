@@ -79,17 +79,26 @@ const SavedRecipesScreen = () => {
               <h3>No Saved Recipes</h3>
               <p>Start saving recipes to see them here</p>
             </div>
-          ) : (
-            savedPosts.map(post => (
-              <div key={post._id || post.id} className="post-card">
-                <PostComponent
-                  post={post}
-                  navigation={{ navigate }}
-                  onRefreshData={handleRefresh}
-                />
-              </div>
-            ))
-          )}
+         ) : (
+  <div className="saved-recipes-grid">
+    {savedPosts.map(post => (
+      <div 
+        key={post._id || post.id} 
+        className="saved-recipe-card"
+        onClick={() => navigate(`/post/${post._id || post.id}`)}
+      >
+        <img 
+          src={post.image} 
+          alt={post.title || 'Recipe'} 
+          className="saved-recipe-image"
+        />
+        <div className="saved-recipe-overlay">
+          <span className="saved-recipe-title">{post.title}</span>
+        </div>
+      </div>
+    ))}
+  </div>
+)}
         </div>
       </div>
     </div>

@@ -99,10 +99,6 @@ const NotificationsScreen = () => {
   }, [currentUser]);
 
   const handleNotificationPress = useCallback(async (notification) => {
-    if (!notification.read) {
-      await handleMarkAsRead(notification._id);
-    }
-
     switch (notification.type) {
       case 'follow':
         if (notification.fromUserId) {
@@ -134,8 +130,11 @@ const NotificationsScreen = () => {
         console.log('Unknown notification type:', notification.type);
         break;
     }
-  }, [handleMarkAsRead, navigate]);
 
+    if (!notification.read) {
+      handleMarkAsRead(notification._id);
+    }
+  }, [handleMarkAsRead, navigate]);
   const getNotificationIcon = (type) => {
     switch (type) {
       case 'like':
