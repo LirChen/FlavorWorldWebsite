@@ -1,9 +1,13 @@
+// server/src/routes/auth.js
 import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
+import crypto from 'crypto';
+import { sendResetEmail } from '../utils/emailService.js';
 
 const router = express.Router();
+const resetCodes = new Map();
 
 router.post('/register', async (req, res) => {
   try {
@@ -86,7 +90,7 @@ router.post('/login', async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, saltRounds);
         user.password = hashedPassword;
         await user.save();
-        console.log(`✅ Password for user ${user.email} has been securely hashed.`);
+        console.log(`Password for user ${user.email} has been securely hashed.`);
       }
     }
 
@@ -137,6 +141,194 @@ router.post('/forgotpassword', async (req, res) => {
 
   } catch (error) {
     console.error('Forgot password error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.post('/check-email', async (req, res) => {
+  try {
+    const { email } = req.body;
+    
+    if (!email) {
+      return res.status(400).json({ 
+        exists: false, 
+        message: 'Email is required' 
+      });
+    }
+
+    const user = await User.findOne({ email: email.toLowerCase() });
+    
+    return res.json({ 
+      exists: !!user,
+      message: user ? 'Email exists' : 'Email available'
+    });
+    
+  } catch (error) {
+    console.error('Check email error:', error);
+    return res.status(500).json({ 
+      exists: false, 
+      message: 'Server error' 
+    });
+  }
+});
+
+router.post('/send-reset-code', async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: 'Email is required' });
+    }
+
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    if (!user) {
+      return res.status(404).json({ message: 'No user found with this email address' });
+    }
+
+    // Generate 6-digit code
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    
+    // Generate reset token
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    
+    // Store code with expiration (15 minutes to match email text)
+    resetCodes.set(email.toLowerCase(), {
+      code,
+      resetToken,
+      expiresAt: Date.now() + 15 * 60 * 1000, // 15 minutes
+      attempts: 0
+    });
+
+    console.log(`Reset code for ${email}: ${code}`);
+
+    try {
+      const emailResult = await sendResetEmail(email, code);
+      
+      if (!emailResult.success) {
+        console.error('Failed to send email:', emailResult.error);
+        return res.status(500).json({ message: 'Failed to send email' });
+      } else {
+        console.log('Reset email sent successfully to:', email);
+      }
+    } catch (emailError) {
+      console.error('Email sending error:', emailError);
+    }
+
+    res.json({
+      message: 'Reset code sent successfully',
+      resetToken
+    });
+
+  } catch (error) {
+    console.error('Send reset code error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Verify Reset Code
+router.post('/verify-reset-code', async (req, res) => {
+  try {
+    const { email, code } = req.body;
+
+    if (!email || !code) {
+      return res.status(400).json({ message: 'Email and code are required' });
+    }
+
+    const resetData = resetCodes.get(email.toLowerCase());
+
+    if (!resetData) {
+      return res.status(400).json({ message: 'No reset code found. Please request a new one.' });
+    }
+
+    // Check expiration
+    if (Date.now() > resetData.expiresAt) {
+      resetCodes.delete(email.toLowerCase());
+      return res.status(400).json({ message: 'Reset code has expired. Please request a new one.' });
+    }
+
+    // Check attempts (max 5)
+    if (resetData.attempts >= 5) {
+      resetCodes.delete(email.toLowerCase());
+      return res.status(400).json({ message: 'Too many failed attempts. Please request a new code.' });
+    }
+
+    // Verify code
+    if (resetData.code !== code.toString()) {
+      resetData.attempts++;
+      return res.status(400).json({ 
+        message: `Incorrect code. ${5 - resetData.attempts} attempts remaining.` 
+      });
+    }
+
+    // Code is correct - generate verification token
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    resetData.verificationToken = verificationToken;
+    resetData.verified = true;
+
+    res.json({
+      message: 'Code verified successfully',
+      verificationToken
+    });
+
+  } catch (error) {
+    console.error('Verify reset code error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Reset Password with Code
+router.post('/reset-password', async (req, res) => {
+  try {
+    const { email, code, newPassword, verificationToken } = req.body;
+
+    if (!email || !code || !newPassword || !verificationToken) {
+      return res.status(400).json({ message: 'All fields are required' });
+    }
+
+    const resetData = resetCodes.get(email.toLowerCase());
+
+    if (!resetData) {
+      return res.status(400).json({ message: 'Invalid or expired reset session' });
+    }
+
+    // Verify token and code
+    if (!resetData.verified || resetData.verificationToken !== verificationToken) {
+      return res.status(400).json({ message: 'Invalid verification. Please verify your code again.' });
+    }
+
+    if (resetData.code !== code.toString()) {
+      return res.status(400).json({ message: 'Invalid code' });
+    }
+
+    // Check password strength
+    if (newPassword.length < 8) {
+      return res.status(400).json({ message: 'Password must be at least 8 characters long' });
+    }
+
+    // Find user and update password
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Hash new password
+    const saltRounds = 12;
+    const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
+    
+    user.password = hashedPassword;
+    await user.save();
+
+    // Clear reset code
+    resetCodes.delete(email.toLowerCase());
+
+    console.log(`Password reset successful for: ${email}`);
+
+    res.json({
+      message: 'Password reset successfully'
+    });
+
+  } catch (error) {
+    console.error('Reset password error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });

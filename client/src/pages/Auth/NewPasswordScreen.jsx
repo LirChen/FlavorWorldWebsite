@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Eye,
   EyeOff,
@@ -9,22 +10,12 @@ import {
   Key
 } from 'lucide-react';
 import { authService } from '../../services/authService';
+import './NewPasswordScreen.css';
 
-const FLAVORWORLD_COLORS = {
-  primary: '#F5A623',
-  secondary: '#4ECDC4',
-  accent: '#1F3A93',
-  background: '#FFF8F0',
-  white: '#FFFFFF',
-  text: '#2C3E50',
-  textLight: '#7F8C8D',
-  border: '#E8E8E8',
-  success: '#27AE60',
-  danger: '#E74C3C',
-};
-
-const NewPasswordScreen = ({ route, navigation }) => {
-  const { email, resetCode, verificationToken } = route?.params || {};
+const NewPasswordScreen = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { email, resetCode, verificationToken } = location.state || {};
   
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -70,15 +61,7 @@ const NewPasswordScreen = ({ route, navigation }) => {
       
       if (result.success) {
         if (window.confirm('Success! Your password has been reset successfully. You can now login with your new password. Would you like to go to login?')) {
-          if (navigation) {
-            navigation.reset({
-              index: 0,
-              routes: [{ name: 'Login' }],
-            });
-          } else {
-            // Fallback for web routing
-            window.location.href = '/login';
-          }
+          navigate('/login');
         }
       } else {
         alert(result.message || 'Failed to reset password');
@@ -91,81 +74,59 @@ const NewPasswordScreen = ({ route, navigation }) => {
   };
 
   const renderPasswordRequirement = (met, text) => (
-    <div className="flex items-center mb-1">
+    <div className="requirement-item">
       {met ? (
-        <CheckCircle className="w-4 h-4 mr-2" style={{ color: FLAVORWORLD_COLORS.success }} />
+        <CheckCircle className="requirement-icon" style={{ color: '#27AE60' }} />
       ) : (
-        <XCircle className="w-4 h-4 mr-2" style={{ color: FLAVORWORLD_COLORS.danger }} />
+        <XCircle className="requirement-icon" style={{ color: '#E74C3C' }} />
       )}
-      <span 
-        className="text-sm"
-        style={{ color: met ? FLAVORWORLD_COLORS.success : FLAVORWORLD_COLORS.danger }}
-      >
+      <span className={`requirement-text ${met ? 'met' : 'unmet'}`}>
         {text}
       </span>
     </div>
   );
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6" style={{ backgroundColor: FLAVORWORLD_COLORS.background }}>
-      <div className="w-full max-w-md">
+    <div className="new-password-screen">
+      <div className="new-password-container">
         {/* Header */}
-        <div className="text-center mb-9">
-          <div className="mb-9">
-            <div 
-              className="w-25 h-25 mx-auto rounded-3xl flex items-center justify-center shadow-lg border-4"
-              style={{ 
-                backgroundColor: FLAVORWORLD_COLORS.white,
-                borderColor: FLAVORWORLD_COLORS.secondary,
-                width: '100px',
-                height: '100px'
-              }}
-            >
-              <Key className="w-10 h-10" style={{ color: FLAVORWORLD_COLORS.secondary }} />
+        <div className="new-password-header">
+          <div className="logo-container">
+            <div className="logo-background">
+              <Key size={44} style={{ color: '#4ECDC4' }} />
             </div>
           </div>
 
-          <h1 className="text-3xl font-bold mb-4" style={{ color: FLAVORWORLD_COLORS.accent }}>
-            Create New Password
-          </h1>
+          <h1 className="title">Create New Password</h1>
           
-          <p className="text-base font-medium mb-2" style={{ color: FLAVORWORLD_COLORS.textLight }}>
+          <p className="subtitle">
             Create a strong password for your account
           </p>
-          <p className="text-lg font-semibold" style={{ color: FLAVORWORLD_COLORS.accent }}>
-            {email}
-          </p>
+          <p className="email-text">{email}</p>
         </div>
 
         {/* Form */}
-        <div className="space-y-4">
+        <div className="new-password-form">
           {/* New Password Input */}
-          <div>
-            <label className="block text-lg font-semibold mb-2" style={{ color: FLAVORWORLD_COLORS.text }}>
-              New Password
-            </label>
-            <div className="relative">
+          <div className="input-group">
+            <label className="input-label">New Password</label>
+            <div className="input-wrapper">
               <input
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter new password"
-                className="w-full px-4 py-3 pr-12 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-500"
-                style={{ 
-                  borderColor: FLAVORWORLD_COLORS.border,
-                  backgroundColor: FLAVORWORLD_COLORS.white,
-                  color: FLAVORWORLD_COLORS.text
-                }}
+                className="password-input"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1"
+                className="toggle-password-btn"
               >
                 {showPassword ? (
-                  <EyeOff className="w-5 h-5" style={{ color: FLAVORWORLD_COLORS.textLight }} />
+                  <EyeOff size={20} style={{ color: '#7F8C8D' }} />
                 ) : (
-                  <Eye className="w-5 h-5" style={{ color: FLAVORWORLD_COLORS.textLight }} />
+                  <Eye size={20} style={{ color: '#7F8C8D' }} />
                 )}
               </button>
             </div>
@@ -173,16 +134,8 @@ const NewPasswordScreen = ({ route, navigation }) => {
 
           {/* Password Requirements */}
           {password.length > 0 && (
-            <div 
-              className="p-4 rounded-xl border"
-              style={{ 
-                backgroundColor: FLAVORWORLD_COLORS.white,
-                borderColor: FLAVORWORLD_COLORS.border
-              }}
-            >
-              <h3 className="text-sm font-semibold mb-2" style={{ color: FLAVORWORLD_COLORS.text }}>
-                Password Requirements:
-              </h3>
+            <div className="requirements-box">
+              <h3 className="requirements-title">Password Requirements:</h3>
               {renderPasswordRequirement(passwordValidation.minLength, 'At least 8 characters')}
               {renderPasswordRequirement(passwordValidation.hasUpperCase, 'One uppercase letter')}
               {renderPasswordRequirement(passwordValidation.hasLowerCase, 'One lowercase letter')}
@@ -192,53 +145,41 @@ const NewPasswordScreen = ({ route, navigation }) => {
           )}
 
           {/* Confirm Password Input */}
-          <div>
-            <label className="block text-lg font-semibold mb-2" style={{ color: FLAVORWORLD_COLORS.text }}>
-              Confirm Password
-            </label>
-            <div className="relative">
+          <div className="input-group">
+            <label className="input-label">Confirm Password</label>
+            <div className="input-wrapper">
               <input
                 type={showConfirmPassword ? 'text' : 'password'}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Confirm new password"
-                className={`w-full px-4 py-3 pr-12 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-500 ${
-                  confirmPassword.length > 0 && !passwordsMatch ? 'bg-red-50' :
-                  confirmPassword.length > 0 && passwordsMatch ? 'bg-green-50' : ''
+                className={`password-input ${
+                  confirmPassword.length > 0 && !passwordsMatch ? 'error' :
+                  confirmPassword.length > 0 && passwordsMatch ? 'success' : ''
                 }`}
-                style={{ 
-                  borderColor: FLAVORWORLD_COLORS.border,
-                  backgroundColor: confirmPassword.length > 0 && !passwordsMatch ? '#FFF5F5' :
-                                 confirmPassword.length > 0 && passwordsMatch ? '#F0FFF4' : 
-                                 FLAVORWORLD_COLORS.white,
-                  color: FLAVORWORLD_COLORS.text
-                }}
               />
               <button
                 type="button"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1"
+                className="toggle-password-btn"
               >
                 {showConfirmPassword ? (
-                  <EyeOff className="w-5 h-5" style={{ color: FLAVORWORLD_COLORS.textLight }} />
+                  <EyeOff size={20} style={{ color: '#7F8C8D' }} />
                 ) : (
-                  <Eye className="w-5 h-5" style={{ color: FLAVORWORLD_COLORS.textLight }} />
+                  <Eye size={20} style={{ color: '#7F8C8D' }} />
                 )}
               </button>
             </div>
             
             {/* Password Match Indicator */}
             {confirmPassword.length > 0 && (
-              <div className="flex items-center mt-2">
+              <div className="match-indicator">
                 {passwordsMatch ? (
-                  <CheckCircle className="w-4 h-4 mr-2" style={{ color: FLAVORWORLD_COLORS.success }} />
+                  <CheckCircle className="match-icon" style={{ color: '#27AE60' }} />
                 ) : (
-                  <XCircle className="w-4 h-4 mr-2" style={{ color: FLAVORWORLD_COLORS.danger }} />
+                  <XCircle className="match-icon" style={{ color: '#E74C3C' }} />
                 )}
-                <span 
-                  className="text-sm font-medium"
-                  style={{ color: passwordsMatch ? FLAVORWORLD_COLORS.success : FLAVORWORLD_COLORS.danger }}
-                >
+                <span className={`match-text ${passwordsMatch ? 'success' : 'danger'}`}>
                   {passwordsMatch ? 'Passwords match' : 'Passwords do not match'}
                 </span>
               </div>
@@ -246,22 +187,14 @@ const NewPasswordScreen = ({ route, navigation }) => {
           </div>
 
           {/* Submit Button */}
-          <div className="pt-6 pb-4">
+          <div className="submit-section">
             <button
               onClick={handleResetPassword}
               disabled={!isFormValid || isLoading}
-              className={`w-full flex items-center justify-center px-5 py-3 rounded-full text-lg font-semibold transition-all ${
-                (!isFormValid || isLoading) 
-                  ? 'opacity-50 cursor-not-allowed' 
-                  : 'hover:opacity-90 transform hover:scale-[1.02] shadow-lg'
-              }`}
-              style={{ 
-                backgroundColor: (!isFormValid || isLoading) ? FLAVORWORLD_COLORS.textLight : FLAVORWORLD_COLORS.primary,
-                color: FLAVORWORLD_COLORS.white 
-              }}
+              className="submit-btn"
             >
               {isLoading ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
+                <div className="spinner" />
               ) : (
                 'Reset Password'
               )}
@@ -269,13 +202,12 @@ const NewPasswordScreen = ({ route, navigation }) => {
           </div>
 
           {/* Back Button */}
-          <div className="text-center">
+          <div className="back-section">
             <button
-              onClick={() => navigation?.goBack()}
-              className="inline-flex items-center px-4 py-2 font-semibold hover:opacity-80 transition-opacity"
-              style={{ color: FLAVORWORLD_COLORS.textLight }}
+              onClick={() => navigate(-1)}
+              className="back-btn"
             >
-              <ArrowLeft className="w-4 h-4 mr-2" />
+              <ArrowLeft className="back-icon" />
               Back to Code
             </button>
           </div>
