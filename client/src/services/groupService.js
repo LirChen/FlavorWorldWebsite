@@ -320,55 +320,76 @@ class GroupService {
     }
   }
 
-  async updateGroupPost(groupId, postId, updateData, imageFile = null) {
+  async updateGroupPost(groupId, postId, updateData, mediaFile = null, mediaType = null) {
     try {
-        console.log('Updating group post');
-        
-        const formData = new FormData();
-        
-        formData.append('title', updateData.title);
-        formData.append('description', updateData.description || '');
-        formData.append('ingredients', updateData.ingredients || '');
-        formData.append('instructions', updateData.instructions || '');
-        formData.append('category', updateData.category || 'General');
-        formData.append('meatType', updateData.meatType || 'Mixed');
-        formData.append('prepTime', updateData.prepTime?.toString() || '0');
-        formData.append('servings', updateData.servings?.toString() || '1');
-        formData.append('userId', updateData.userId);
-
-        // טיפול בקובץ תמונה עבור React
-        if (imageFile && imageFile instanceof File) {
-          formData.append('image', imageFile);
-        } else if (updateData.image && typeof updateData.image === 'string') {
-          formData.append('existingImage', updateData.image);
-        }
-
-        const response = await this.axiosInstance.put(`/groups/${groupId}/posts/${postId}`, formData, {
-        headers: {
-            'Content-Type': 'multipart/form-data',
-        },
-        timeout: 30000,
-        });
-
-        console.log('Group post updated successfully');
+      console.log('Updating group post:', postId);
+      
+      if (!groupId || !postId) {
         return {
+          success: false,
+          message: 'Group ID and Post ID are required'
+        };
+      }
+      
+      const formData = new FormData();
+      
+      // Add all fields
+      formData.append('title', updateData.title || '');
+      formData.append('description', updateData.description || '');
+      formData.append('ingredients', updateData.ingredients || '');
+      formData.append('instructions', updateData.instructions || '');
+      formData.append('category', updateData.category || 'General');
+      formData.append('meatType', updateData.meatType || 'Mixed');
+      formData.append('prepTime', updateData.prepTime?.toString() || '0');
+      formData.append('servings', updateData.servings?.toString() || '1');
+      formData.append('userId', updateData.userId);
+
+      if (mediaFile instanceof File) {
+        const detectedType = mediaType || (mediaFile.type.startsWith('video/') ? 'video' : 'image');
+        
+        if (detectedType === 'video' || mediaFile.type.startsWith('video/')) {
+          formData.append('video', mediaFile);
+          formData.append('mediaType', 'video');
+        } else {
+          formData.append('image', mediaFile);
+          formData.append('mediaType', 'image');
+        }
+      } else {
+        // Keep existing media
+        if (updateData.image) {
+          formData.append('image', updateData.image);
+          formData.append('mediaType', 'image');
+        }
+        if (updateData.video) {
+          formData.append('video', updateData.video);
+          formData.append('mediaType', 'video');
+        }
+      }
+
+      const response = await this.axiosInstance.put(
+        `/groups/${groupId}/posts/${postId}`, 
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+          timeout: 120000
+        }
+      );
+
+      console.log('Group post updated successfully');
+      return {
         success: true,
         data: response.data
-        };
-        
+      };
+      
     } catch (error) {
-        
-        if (error.code === 'ECONNABORTED') {
-        return {
-            success: false,
-            message: 'Request timeout - please check your connection and try again'
-        };
-        }
-        
-        return {
+      console.error('Update group post error:', error);
+      
+      return {
         success: false,
-        message: error.response?.data?.message || error.message
-        };
+        message: error.response?.data?.message || error.message || 'Failed to update group post'
+      };
     }
   }
 
@@ -440,7 +461,6 @@ class GroupService {
       formData.append('allowInvites', updateData.allowInvites.toString());
       formData.append('updatedBy', updateData.updatedBy);
 
-      // טיפול בקובץ תמונה עבור React
       if (imageFile && imageFile instanceof File) {
         formData.append('image', imageFile);
       }
@@ -524,12 +544,27 @@ class GroupService {
     }
   }
 
-  async createGroupPost(groupId, postData, imageFile = null) {
+  async createGroupPost(groupId, postData, mediaFile = null, mediaType = null) {
     try {
-      console.log('Creating group post');
+      console.log('Creating group post for group:', groupId);
+      
+      if (!groupId) {
+        return {
+          success: false,
+          message: 'Group ID is required'
+        };
+      }
+      
+      if (!postData || !postData.title) {
+        return {
+          success: false,
+          message: 'Post title is required'
+        };
+      }
       
       const formData = new FormData();
       
+      // Add all basic fields
       formData.append('title', postData.title);
       formData.append('description', postData.description || '');
       formData.append('ingredients', postData.ingredients || '');
@@ -540,18 +575,47 @@ class GroupService {
       formData.append('servings', postData.servings?.toString() || '1');
       formData.append('userId', postData.userId);
 
-      // טיפול בקובץ תמונה עבור React
-      if (imageFile && imageFile instanceof File) {
-        formData.append('image', imageFile);
+      if (mediaFile instanceof File) {
+        const detectedType = mediaType || (mediaFile.type.startsWith('video/') ? 'video' : 'image');
+        
+        if (detectedType === 'video' || mediaFile.type.startsWith('video/')) {
+          console.log('🎥 Adding video to group post');
+          formData.append('video', mediaFile);
+          formData.append('mediaType', 'video');
+        } else {
+          console.log('📷 Adding image to group post');
+          formData.append('image', mediaFile);
+          formData.append('mediaType', 'image');
+        }
+      } else if (postData.image) {
+        // If image data already in base64
+        console.log('Using existing image data');
+        formData.append('image', postData.image);
+        formData.append('mediaType', 'image');
+      } else {
+        formData.append('mediaType', 'none');
       }
 
-      console.log('Sending request to create group post');
-      const response = await this.axiosInstance.post(`/groups/${groupId}/posts`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-        timeout: 30000,
-      });
+      console.log('Sending request to create group post...');
+      const response = await this.axiosInstance.post(
+        `/groups/${groupId}/posts`, 
+        formData, 
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+          timeout: 120000, // 2 minutes for video uploads
+          onUploadProgress: (progressEvent) => {
+            const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            console.log(`Upload progress: ${progress}%`);
+            
+            // Allow progress callback
+            if (postData.onUploadProgress) {
+              postData.onUploadProgress(progress);
+            }
+          }
+        }
+      );
 
       console.log('Group post created successfully');
       return {
@@ -560,19 +624,43 @@ class GroupService {
       };
       
     } catch (error) {
+      console.error('Create group post error:', error);
       
       if (error.code === 'ECONNABORTED') {
         return {
           success: false,
-          message: 'Request timeout - please check your connection and try again'
+          message: 'Upload timeout - file may be too large. Please try a smaller file.'
         };
       }
       
-      if (error.response?.data?.message) {
-        console.log('Server error message received');
+      if (error.response) {
+        const status = error.response.status;
+        const message = error.response.data?.message;
+        
+        if (status === 403) {
+          return {
+            success: false,
+            message: message || 'You do not have permission to post in this group'
+          };
+        }
+        
+        if (status === 404) {
+          return {
+            success: false,
+            message: 'Group not found'
+          };
+        }
+        
+        if (status === 413) {
+          return {
+            success: false,
+            message: 'File too large. Maximum size is 10MB for images, 100MB for videos.'
+          };
+        }
+        
         return {
           success: false,
-          message: error.response.data.message
+          message: message || `Server error: ${status}`
         };
       }
       

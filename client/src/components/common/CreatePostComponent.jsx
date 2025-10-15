@@ -128,16 +128,24 @@ const CreatePostComponent = ({
         userId: currentUser?.id || currentUser?._id,
         userName: currentUser?.fullName || currentUser?.name || 'Anonymous',
         userAvatar: currentUser?.avatar || currentUser?.userAvatar || null,
-        mediaType: mediaType,
-        media: media ? media.uri : null
+        mediaType: mediaType
       };
 
       let result;
 
       if (isGroupPost) {
-        result = await groupService.createGroupPost(groupId, recipeData, media?.uri);
+        result = await groupService.createGroupPost(
+          groupId, 
+          recipeData, 
+          media?.file,  
+          mediaType
+        );
       } else {
-        result = await recipeService.createRecipe(recipeData);
+        result = await recipeService.createRecipe(
+          recipeData, 
+          media?.file,  
+          mediaType
+        );
       }
 
       if (result?.success) {

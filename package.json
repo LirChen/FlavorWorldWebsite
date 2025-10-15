@@ -2,5 +2,13 @@
   "dependencies": {
     "d3": "^7.9.0",
     "lucide-react": "^0.544.0"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "^3.2.4",
+    "@vitest/ui": "^3.2.4",
+    "cross-env": "^10.1.0",
+    "mongodb-memory-server": "^10.2.3",
+    "supertest": "^7.1.4",
+    "vitest": "^3.2.4"
   }
 }

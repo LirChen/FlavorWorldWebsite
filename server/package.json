@@ -6,6 +6,7 @@
   "scripts": {
     "start": "cross-env NODE_ENV=production node server.js",
     "dev": "cross-env NODE_ENV=development nodemon server.js",
+    "build": "echo \"no build step\"",
     "test": "cross-env NODE_ENV=test vitest run",
     "test:watch": "cross-env NODE_ENV=test vitest watch",
     "test:ui": "cross-env NODE_ENV=test vitest --ui",
