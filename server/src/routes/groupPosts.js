@@ -33,6 +33,10 @@ router.post('/:groupId/posts', upload.any(), async (req, res) => {
     console.log('Group post data received:', formData);
 
     const userId = formData.userId;
+    if (!userId) {
+      return res.status(400).json({ message: 'User ID is required' });
+    }
+
     const isMember = group.members.some(member => 
       member.userId === userId || 
       member.userId?.toString() === userId?.toString()
@@ -144,6 +148,7 @@ router.post('/:groupId/posts', upload.any(), async (req, res) => {
       userName: user ? user.fullName : 'Unknown User',
       userAvatar: user ? user.avatar : null,
       userBio: user ? user.bio : null,
+      postSource: 'group',
       groupName: group.name
     };
 
@@ -589,6 +594,112 @@ router.post('/:groupId/posts/:postId/comments', async (req, res) => {
 
   } catch (error) {
     res.status(500).json({ message: 'Failed to add comment' });
+  }
+});
+
+router.put('/:groupId/posts/:postId', upload.any(), async (req, res) => {
+  try {
+    console.log('=== Group Post Update Debug ===');
+    console.log('Group ID:', req.params.groupId);
+    console.log('Post ID:', req.params.postId);
+    console.log('MongoDB connected:', isMongoConnected());
+    
+    if (!isMongoConnected()) {
+      return res.status(503).json({ message: 'Database not available' });
+    }
+
+    const { groupId, postId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(groupId) || !mongoose.Types.ObjectId.isValid(postId)) {
+      return res.status(400).json({ message: 'Invalid group or post ID' });
+    }
+
+    const group = await Group.findById(groupId);
+    if (!group) {
+      return res.status(404).json({ message: 'Group not found' });
+    }
+
+    const post = await GroupPost.findById(postId);
+    if (!post) {
+      return res.status(404).json({ message: 'Post not found' });
+    }
+
+    const userId = req.body.userId;
+    const isPostOwner = post.userId === userId || post.userId?.toString() === userId?.toString();
+    const isGroupAdmin = group.members.some(member => 
+      (member.userId === userId || member.userId?.toString() === userId?.toString()) && 
+      (member.role === 'admin' || member.role === 'owner')
+    );
+    const isGroupCreator = group.creatorId === userId || group.creatorId?.toString() === userId?.toString();
+
+    if (!isPostOwner && !isGroupAdmin && !isGroupCreator) {
+      return res.status(403).json({ message: 'Permission denied' });
+    }
+
+    const updateData = {
+      title: req.body.title || post.title,
+      description: req.body.description || post.description,
+      ingredients: req.body.ingredients || post.ingredients,
+      instructions: req.body.instructions || post.instructions,
+      category: req.body.category || post.category,
+      meatType: req.body.meatType || post.meatType,
+      prepTime: req.body.prepTime ? parseInt(req.body.prepTime) : post.prepTime,
+      servings: req.body.servings ? parseInt(req.body.servings) : post.servings
+    };
+
+    let imageData = null;
+    if (req.files && req.files.length > 0) {
+      const imageFile = req.files.find(file => 
+        file.fieldname === 'image' || 
+        file.fieldname === 'video' ||
+        file.mimetype.startsWith('image/') ||
+        file.mimetype.startsWith('video/')
+      );
+      
+      if (imageFile) {
+        const base64Image = imageFile.buffer.toString('base64');
+        imageData = `data:${imageFile.mimetype};base64,${base64Image}`;
+        console.log('Media updated to base64');
+      }
+    }
+
+    // Use new image if provided, otherwise check body
+    if (imageData) {
+      updateData.image = imageData;
+    } else if (req.body.image) {
+      updateData.image = req.body.image;
+    } else if (req.body.existingImage) {
+      updateData.image = req.body.existingImage;
+    }
+    // If no image at all, keep the old one (don't update image field)
+
+    const updatedPost = await GroupPost.findByIdAndUpdate(
+      postId,
+      updateData,
+      { new: true, runValidators: true }
+    );
+
+    console.log('Group post updated successfully:', updatedPost._id);
+
+    const user = await User.findById(updatedPost.userId);
+    const enrichedPost = {
+      ...updatedPost.toObject(),
+      userName: user ? user.fullName : 'Unknown User',
+      userAvatar: user ? user.avatar : null,
+      userBio: user ? user.bio : null,
+      groupName: group.name,
+      postSource: 'group'
+    };
+
+    res.json({
+      message: 'Group post updated successfully',
+      recipe: enrichedPost,
+      data: enrichedPost
+    });
+
+  } catch (error) {
+    console.error('Error updating group post:', error);
+    res.status(500).json({ message: 'Failed to update group post', error: error.message });
   }
 });
 

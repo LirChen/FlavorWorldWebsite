@@ -2,8 +2,8 @@ import express from 'express';
 import Recipe from '../models/Recipe.js';
 import User from '../models/User.js';
 import jwt from 'jsonwebtoken';
-import multer from 'multer';
-import path from 'path';
+import upload from '../middleware/upload.js';
+import { isMongoConnected } from '../config/database.js';
 
 const router = express.Router();
 
@@ -28,34 +28,16 @@ const authenticateToken = async (req, res, next) => {
   }
 };
 
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, 'uploads/recipes/');
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, 'recipe-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
-
-const fileFilter = (req, file, cb) => {
-  if (file.mimetype.startsWith('image/')) {
-    cb(null, true);
-  } else {
-    cb(new Error('Only image files are allowed'), false);
-  }
-};
-
-const upload = multer({ 
-  storage: storage,
-  fileFilter: fileFilter,
-  limits: {
-    fileSize: 5 * 1024 * 1024 
-  }
-});
-
-router.post('/', authenticateToken, upload.single('image'), async (req, res) => {
+// ✅ CREATE RECIPE
+router.post('/', authenticateToken, upload.any(), async (req, res) => {
   try {
+    console.log('=== Recipe Creation Debug ===');
+    console.log('MongoDB connected:', isMongoConnected());
+    
+    if (!isMongoConnected()) {
+      return res.status(503).json({ message: 'Database not available' });
+    }
+
     const {
       title,
       description,
@@ -80,45 +62,79 @@ router.post('/', authenticateToken, upload.single('image'), async (req, res) => 
       meatType,
       prepTime: parseInt(prepTime),
       servings: parseInt(servings),
-      userId: req.user._id,
+      userId: req.user._id.toString(),
       userName: req.user.fullName,
-      userAvatar: req.user.avatar || null
+      userAvatar: req.user.avatar || null,
+      likes: [],
+      comments: []
     };
 
-    if (req.file) {
-      recipeData.image = `/uploads/recipes/${req.file.filename}`;
+    // ✅ Handle image/video upload
+    let mediaData = null;
+    if (req.files && req.files.length > 0) {
+      const mediaFile = req.files.find(file => 
+        file.fieldname === 'image' || 
+        file.fieldname === 'video' ||
+        file.mimetype.startsWith('image/') ||
+        file.mimetype.startsWith('video/')
+      );
+      
+      if (mediaFile) {
+        const base64Data = mediaFile.buffer.toString('base64');
+        mediaData = `data:${mediaFile.mimetype};base64,${base64Data}`;
+        console.log('✅ Media converted to base64:', mediaFile.mimetype);
+      }
+    }
+
+    // Check if media already in body (base64)
+    if (!mediaData && req.body.image) {
+      mediaData = req.body.image;
+    }
+
+    if (mediaData) {
+      recipeData.image = mediaData;
     }
 
     const recipe = new Recipe(recipeData);
-    await recipe.save();
+    const savedRecipe = await recipe.save();
+    
+    console.log('✅ Recipe saved successfully:', savedRecipe._id);
 
+    // ✅ Return complete recipe
     res.status(201).json({
       message: 'Recipe created successfully',
-      recipe
+      recipe: savedRecipe.toObject()
     });
 
   } catch (error) {
-    console.error('Error creating recipe:', error);
-    res.status(500).json({ message: 'Server error' });
+    console.error('❌ Error creating recipe:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
+
+// GET ALL RECIPES
 router.get('/', async (req, res) => {
   try {
-    const recipes = await Recipe.find()
-      .sort({ createdAt: -1 })
-      .populate('userId', 'fullName avatar');
+    if (!isMongoConnected()) {
+      return res.status(503).json({ message: 'Database not available' });
+    }
 
+    const recipes = await Recipe.find().sort({ createdAt: -1 });
     res.json(recipes);
   } catch (error) {
     console.error('Error fetching recipes:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });
+
+// GET SINGLE RECIPE
 router.get('/:id', async (req, res) => {
   try {
-    const recipe = await Recipe.findById(req.params.id)
-      .populate('userId', 'fullName avatar')
-      .populate('comments.userId', 'fullName avatar');
+    if (!isMongoConnected()) {
+      return res.status(503).json({ message: 'Database not available' });
+    }
+
+    const recipe = await Recipe.findById(req.params.id);
 
     if (!recipe) {
       return res.status(404).json({ message: 'Recipe not found' });
@@ -131,8 +147,16 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-router.put('/:id', authenticateToken, async (req, res) => {
+// ✅ UPDATE RECIPE
+router.put('/:id', authenticateToken, upload.any(), async (req, res) => {
   try {
+    console.log('=== Recipe Update Debug ===');
+    console.log('Recipe ID:', req.params.id);
+    
+    if (!isMongoConnected()) {
+      return res.status(503).json({ message: 'Database not available' });
+    }
+
     const recipe = await Recipe.findById(req.params.id);
 
     if (!recipe) {
@@ -143,21 +167,64 @@ router.put('/:id', authenticateToken, async (req, res) => {
       return res.status(403).json({ message: 'Not authorized to update this recipe' });
     }
 
+    // Build update data
+    const updateData = {
+      title: req.body.title || recipe.title,
+      description: req.body.description || recipe.description,
+      ingredients: req.body.ingredients || recipe.ingredients,
+      instructions: req.body.instructions || recipe.instructions,
+      category: req.body.category || recipe.category,
+      meatType: req.body.meatType || recipe.meatType,
+      prepTime: req.body.prepTime ? parseInt(req.body.prepTime) : recipe.prepTime,
+      servings: req.body.servings ? parseInt(req.body.servings) : recipe.servings
+    };
+
+    // ✅ Handle media update
+    if (req.files && req.files.length > 0) {
+      const mediaFile = req.files.find(file => 
+        file.fieldname === 'image' || 
+        file.fieldname === 'video' ||
+        file.mimetype.startsWith('image/') ||
+        file.mimetype.startsWith('video/')
+      );
+      
+      if (mediaFile) {
+        const base64Data = mediaFile.buffer.toString('base64');
+        updateData.image = `data:${mediaFile.mimetype};base64,${base64Data}`;
+        console.log('✅ Media updated to base64');
+      }
+    } else if (req.body.image) {
+      // Keep existing or use provided base64
+      updateData.image = req.body.image;
+    } else if (req.body.existingImage) {
+      updateData.image = req.body.existingImage;
+    }
+
     const updatedRecipe = await Recipe.findByIdAndUpdate(
       req.params.id,
-      req.body,
+      updateData,
       { new: true, runValidators: true }
     );
 
-    res.json(updatedRecipe);
+    console.log('✅ Recipe updated successfully:', updatedRecipe._id);
+
+    res.json({
+      message: 'Recipe updated successfully',
+      recipe: updatedRecipe.toObject()
+    });
   } catch (error) {
-    console.error('Error updating recipe:', error);
-    res.status(500).json({ message: 'Server error' });
+    console.error('❌ Error updating recipe:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
 
+// DELETE RECIPE
 router.delete('/:id', authenticateToken, async (req, res) => {
   try {
+    if (!isMongoConnected()) {
+      return res.status(503).json({ message: 'Database not available' });
+    }
+
     const recipe = await Recipe.findById(req.params.id);
 
     if (!recipe) {
@@ -177,12 +244,20 @@ router.delete('/:id', authenticateToken, async (req, res) => {
   }
 });
 
+// ✅ LIKE RECIPE
 router.post('/:id/like', authenticateToken, async (req, res) => {
   try {
+    if (!isMongoConnected()) {
+      return res.status(503).json({ message: 'Database not available' });
+    }
+
     const recipe = await Recipe.findById(req.params.id);
     if (!recipe) return res.status(404).json({ message: 'Recipe not found' });
 
-    const userId = req.user._id;
+    const userId = req.user._id.toString();
+    
+    if (!recipe.likes) recipe.likes = [];
+    
     if (recipe.likes.includes(userId)) {
       return res.status(400).json({ message: 'Recipe already liked' });
     }
@@ -190,35 +265,58 @@ router.post('/:id/like', authenticateToken, async (req, res) => {
     recipe.likes.push(userId);
     await recipe.save();
 
-    res.json({ message: 'Recipe liked successfully', likesCount: recipe.likes.length });
+    console.log('✅ Recipe liked');
+
+    res.json({ 
+      message: 'Recipe liked successfully', 
+      likesCount: recipe.likes.length,
+      likes: recipe.likes
+    });
   } catch (error) {
     console.error('Error liking recipe:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });
 
+// ✅ UNLIKE RECIPE
 router.delete('/:id/like', authenticateToken, async (req, res) => {
   try {
+    if (!isMongoConnected()) {
+      return res.status(503).json({ message: 'Database not available' });
+    }
+
     const recipe = await Recipe.findById(req.params.id);
     if (!recipe) return res.status(404).json({ message: 'Recipe not found' });
 
-    const userId = req.user._id;
-    if (!recipe.likes.includes(userId)) {
+    const userId = req.user._id.toString();
+    
+    if (!recipe.likes || !recipe.likes.includes(userId)) {
       return res.status(400).json({ message: 'Recipe not liked yet' });
     }
 
-    recipe.likes = recipe.likes.filter(id => id.toString() !== userId.toString());
+    recipe.likes = recipe.likes.filter(id => id.toString() !== userId);
     await recipe.save();
 
-    res.json({ message: 'Like removed successfully', likesCount: recipe.likes.length });
+    console.log('✅ Recipe unliked');
+
+    res.json({ 
+      message: 'Like removed successfully', 
+      likesCount: recipe.likes.length,
+      likes: recipe.likes
+    });
   } catch (error) {
     console.error('Error removing like:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });
 
+// ✅ ADD COMMENT
 router.post('/:id/comments', authenticateToken, async (req, res) => {
   try {
+    if (!isMongoConnected()) {
+      return res.status(503).json({ message: 'Database not available' });
+    }
+
     const { text } = req.body;
     if (!text || !text.trim()) {
       return res.status(400).json({ message: 'Comment text is required' });
@@ -228,17 +326,31 @@ router.post('/:id/comments', authenticateToken, async (req, res) => {
     if (!recipe) return res.status(404).json({ message: 'Recipe not found' });
 
     const comment = {
-      userId: req.user._id,
+      userId: req.user._id.toString(),
       userName: req.user.fullName,
-      text: text.trim()
+      userAvatar: req.user.avatar || null,
+      text: text.trim(),
+      createdAt: new Date()
     };
 
+    if (!recipe.comments) recipe.comments = [];
     recipe.comments.push(comment);
     await recipe.save();
 
+    const savedComment = recipe.comments[recipe.comments.length - 1];
+
+    console.log('✅ Comment added');
+
     res.status(201).json({
       message: 'Comment added successfully',
-      comment: recipe.comments[recipe.comments.length - 1]
+      data: {
+        comment: {
+          ...savedComment.toObject(),
+          _id: savedComment._id.toString()
+        },
+        comments: recipe.comments,
+        commentsCount: recipe.comments.length
+      }
     });
   } catch (error) {
     console.error('Error adding comment:', error);
@@ -246,8 +358,13 @@ router.post('/:id/comments', authenticateToken, async (req, res) => {
   }
 });
 
+// ✅ DELETE COMMENT
 router.delete('/:id/comments/:commentId', authenticateToken, async (req, res) => {
   try {
+    if (!isMongoConnected()) {
+      return res.status(503).json({ message: 'Database not available' });
+    }
+
     const recipe = await Recipe.findById(req.params.id);
     if (!recipe) return res.status(404).json({ message: 'Recipe not found' });
 
@@ -261,7 +378,12 @@ router.delete('/:id/comments/:commentId', authenticateToken, async (req, res) =>
     recipe.comments.pull({ _id: req.params.commentId });
     await recipe.save();
 
-    res.json({ message: 'Comment deleted successfully' });
+    console.log('✅ Comment deleted');
+
+    res.json({ 
+      message: 'Comment deleted successfully',
+      commentsCount: recipe.comments.length
+    });
   } catch (error) {
     console.error('Error deleting comment:', error);
     res.status(500).json({ message: 'Server error' });
