@@ -20,7 +20,8 @@ import {
   HelpCircle,
   Info,
   Shield,
-  X
+  X,
+  Bookmark
 } from 'lucide-react';
 import './ProfileScreen.css';
 import { useAuth } from '../../services/AuthContext';
@@ -31,7 +32,6 @@ import { userService } from '../../services/userService';
 import { chatService } from '../../services/chatServices';
 import { statisticsService } from '../../services/statisticsService';
 import { groupService } from '../../services/groupService';
-
 const ProfileScreen = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -510,6 +510,11 @@ const ProfileScreen = () => {
               <button onClick={() => navigate(`/profile/statistics?userId=${userId}`)}>
                 <BarChart3 size={20} />
                 <span>My Statistics</span>
+                <span className="arrow">→</span>
+              </button>
+              <button onClick={() => navigate('/saved')}>
+                <Bookmark size={20} />
+                <span>Saved</span>
                 <span className="arrow">→</span>
               </button>
             </div>

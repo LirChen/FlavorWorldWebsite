@@ -20,6 +20,7 @@ import ChatConversationScreen from '../pages/Chats/ChatConversationScreen';
 import GroupSettingsScreen from '../pages/Groups/GroupSettingsScreen';
 import GroupMembersScreen from '../pages/Groups/GroupMembersScreen';
 import HomeScreen from '../pages/Home/HomeScreen';
+import SavedRecipesScreen from '../pages/Profile/SavedRecipesScreen';
 
 export default function HomeNavigator() {
   return (
@@ -43,7 +44,8 @@ export default function HomeNavigator() {
       <Route path="/profile" element={<ProfileScreen />} />
       <Route path="/profile/edit" element={<EditProfileScreen />} />
       <Route path="/profile/statistics" element={<UserStatisticsScreen />} />
-      
+      <Route path="/saved" element={<SavedRecipesScreen />} />
+
       {/* Chat Routes */}
       <Route path="/chats" element={<ChatListScreen />} />
       <Route path="/chat/search" element={<UserSearchScreen />} />

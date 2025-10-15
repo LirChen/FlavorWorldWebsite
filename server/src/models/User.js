@@ -7,7 +7,11 @@ const UserSchema = new mongoose.Schema({
   bio: { type: String, maxlength: 500 },
   avatar: { type: String, maxlength: 10000000 },
   followers: [{ type: String }],
-  following: [{ type: String }]
+  following: [{ type: String }],
+  savedRecipes: [{
+    recipeId: { type: mongoose.Schema.Types.ObjectId, ref: 'Recipe' },
+    savedAt: { type: Date, default: Date.now }
+  }]
 }, { timestamps: true });
 
 export default mongoose.models.User || mongoose.model('User', UserSchema);
