@@ -3,6 +3,7 @@ import {
   Heart,
   MessageCircle,
   Share2,
+  Bookmark,
   MoreHorizontal,
   Clock,
   Users,
@@ -53,13 +54,23 @@ const PostComponent = ({
   const [newComment, setNewComment] = useState('');
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const [isSubmittingLike, setIsSubmittingLike] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
 
   const navigate = useNavigate();
 
-  useEffect(() => {
-    setLocalLikes(safePost.likes || []);
-    setLocalComments(safePost.comments || []);
-  }, [safePost.likes, safePost.comments]);
+ useEffect(() => {
+  setLocalLikes(safePost.likes || []);
+  setLocalComments(safePost.comments || []);
+  
+  const checkSaved = async () => {
+  const result = await recipeService.getSavedRecipes();
+  if (result.success && Array.isArray(result.data)) {
+    setIsSaved(result.data.some(r => (r._id || r.id) === (post._id || post.id)));
+  }
+};
+  checkSaved();
+}, [safePost.likes, safePost.comments, post._id, post.id]);
+  
 
   const currentUserId = currentUser?.id || currentUser?._id;
   const isLiked = currentUserId ? localLikes.includes(currentUserId) : false;
@@ -247,7 +258,48 @@ const PostComponent = ({
       alert('Failed to delete comment. Please try again.');
     }
   };
-
+ const handleSave = async () => {
+  const postId = post._id || post.id;
+  
+  console.log('=== SAVE DEBUG ===');
+  console.log('Post object:', post);
+  console.log('Post ID:', postId);
+  console.log('Is saved:', isSaved);
+  console.log('Post source:', post.postSource);
+  console.log('Group ID:', post.groupId);
+  
+  if (!postId) {
+    alert('Error: Post ID is missing');
+    return;
+  }
+  
+  try {
+    if (isSaved) {
+      console.log('Attempting to unsave...');
+      const result = await recipeService.unsaveRecipe(postId);
+      console.log('Unsave result:', result);
+      if (result.success) {
+        setIsSaved(false);
+      } else {
+        console.error('Unsave failed:', result);
+        alert(result.message || 'Failed to unsave recipe');
+      }
+    } else {
+      console.log('Attempting to save...');
+      const result = await recipeService.saveRecipe(postId);
+      console.log('Save result:', result);
+      if (result.success) {
+        setIsSaved(true);
+      } else {
+        console.error('Save failed:', result);
+        alert(result.message || 'Failed to save recipe');
+      }
+    }
+  } catch (error) {
+    console.error('Error saving post:', error);
+    alert('An error occurred. Please try again.');
+  }
+};
   const handleEdit = () => {
     navigate('/edit-post', {
       state: {
@@ -389,6 +441,10 @@ const PostComponent = ({
             <MessageCircle size={18} />
             <span>Comment</span>
           </button>
+          <button className="action-btn" onClick={handleSave}>
+              <Bookmark size={18} fill={isSaved ? 'currentColor' : 'none'} />
+              <span>{isSaved ? 'Saved' : 'Save'}</span>
+            </button>
 
           <button className="action-btn" onClick={() => onShare?.(safePost)}>
             <Share2 size={18} />

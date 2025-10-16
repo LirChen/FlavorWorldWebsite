@@ -18,14 +18,14 @@ if (process.env.NODE_ENV !== 'test') {
       methods: ["GET", "POST"]
     }
   });
-  console.log('🔌 Socket.IO initialized');
+  console.log('Socket.IO initialized');
 } else {
   io = {
     on: () => {},
     emit: () => {},
     to: () => ({ emit: () => {} })
   };
-  console.log('🧪 Socket.IO mocked for tests');
+  console.log(' Socket.IO mocked for tests');
 }
 
 // Middleware
