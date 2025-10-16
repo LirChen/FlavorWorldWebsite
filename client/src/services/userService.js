@@ -2,9 +2,8 @@ import axios from 'axios';
 
 class UserService {
   constructor() {
-    this.baseURL = 'http://localhost:3000'; // Changed to localhost
-    
-    // Create axios instance with base configurations
+    this.baseURL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
     this.api = axios.create({
       baseURL: this.baseURL,
       headers: {
