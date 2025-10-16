@@ -29,7 +29,16 @@ if (process.env.NODE_ENV !== 'test') {
 }
 
 // Middleware
-app.use(cors());
+const allowedOrigins = [
+  'http://localhost:5173', 
+  'https://flavorworldwebsiteclient.onrender.com' 
+];
+
+app.use(cors({
+  origin: allowedOrigins,
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  credentials: true
+}));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
