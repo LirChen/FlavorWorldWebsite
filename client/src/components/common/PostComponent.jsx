@@ -93,11 +93,28 @@ const PostComponent = ({
     }
   };
 
+  const handleCardClick = (e) => {
+    if (
+      e.target.closest('button') ||
+      e.target.closest('.post-options') ||
+      e.target.closest('.post-actions-buttons') ||
+      e.target.closest('.post-comments')
+    ) {
+      return;
+    }
+
+    navigate(`/post/${postId}`, {
+      state: { 
+        groupId: effectiveGroupId, 
+        isGroupPost: isActualGroupPost 
+      }
+    });
+  };
+
   const handleLike = async () => {
     if (!postId || !currentUserId || isSubmittingLike) return;
     setIsSubmittingLike(true);
 
-    // Optimistic update
     const newLikes = isLiked 
       ? localLikes.filter(id => id !== currentUserId)
       : [...localLikes, currentUserId];
@@ -124,12 +141,10 @@ const PostComponent = ({
           onRefreshData();
         }
       } else {
-        // Revert on failure
         setLocalLikes(safePost.likes || []);
         console.error('Like failed:', result.message);
       }
     } catch (error) {
-      // Revert on error
       setLocalLikes(safePost.likes || []);
       console.error('Like error:', error);
     } finally {
@@ -143,7 +158,6 @@ const PostComponent = ({
 
     const commentText = newComment.trim();
     
-    // Optimistic update - add comment locally
     const tempComment = {
       _id: `temp-${Date.now()}`,
       text: commentText,
@@ -175,7 +189,6 @@ const PostComponent = ({
         if (result.data?.comments) {
           setLocalComments(result.data.comments);
         } else if (result.data?.comment) {
-          // If only single comment returned, update the temp one
           setLocalComments(prev => 
             prev.map(c => c._id === tempComment._id ? result.data.comment : c)
           );
@@ -185,16 +198,14 @@ const PostComponent = ({
           onRefreshData();
         }
       } else {
-        // Revert on failure
         setLocalComments(prev => prev.filter(c => c._id !== tempComment._id));
-        setNewComment(commentText); // Restore comment text
+        setNewComment(commentText);
         console.error('Add comment failed:', result.message);
         alert(result.message || 'Failed to add comment');
       }
     } catch (error) {
-      // Revert on error
       setLocalComments(prev => prev.filter(c => c._id !== tempComment._id));
-      setNewComment(commentText); // Restore comment text
+      setNewComment(commentText);
       console.error('Comment error:', error);
       alert('Failed to add comment. Please try again.');
     } finally {
@@ -205,12 +216,10 @@ const PostComponent = ({
   const handleDeleteComment = async (commentId) => {
     if (!commentId || !currentUserId) return;
 
-    // Confirm deletion
     if (!window.confirm('Are you sure you want to delete this comment?')) {
       return;
     }
 
-    // Optimistic update - remove comment locally
     const originalComments = [...localComments];
     setLocalComments(prev => prev.filter(comment => comment._id !== commentId));
 
@@ -235,13 +244,11 @@ const PostComponent = ({
           onRefreshData();
         }
       } else {
-        // Revert on failure
         setLocalComments(originalComments);
         console.error('Delete comment failed:', result.message);
         alert(result.message || 'Failed to delete comment');
       }
     } catch (error) {
-      // Revert on error
       setLocalComments(originalComments);
       console.error('Delete comment error:', error);
       alert('Failed to delete comment. Please try again.');
@@ -268,10 +275,16 @@ const PostComponent = ({
   };
 
   return (
-    <div className="post-component">
+    <div className="post-component" onClick={handleCardClick} style={{ cursor: 'pointer' }}>
       {/* Post Header */}
       <div className="post-header">
-        <div className="post-author" onClick={() => navigation?.navigate?.('/profile', { state: { userId: safePost.userId } })}>
+        <div 
+          className="post-author" 
+          onClick={(e) => {
+            e.stopPropagation();
+            navigation?.navigate?.('/profile', { state: { userId: safePost.userId } });
+          }}
+        >
           <UserAvatar
             uri={safePost.userAvatar}
             name={safePost.userName || 'Anonymous'}
@@ -285,16 +298,34 @@ const PostComponent = ({
 
         {isOwner && (
           <div className="post-options">
-            <button onClick={() => setShowOptionsMenu(!showOptionsMenu)}>
+            <button 
+              className="menu-button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowOptionsMenu(!showOptionsMenu);
+              }}
+            >
               <MoreHorizontal size={20} />
             </button>
             {showOptionsMenu && (
               <div className="options-menu">
-                <button className="option-item" onClick={handleEdit}>
+                <button 
+                  className="option-item" 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleEdit();
+                  }}
+                >
                   <Edit2 size={16} />
                   <span>Edit</span>
                 </button>
-                <button className="option-item delete" onClick={handleDelete}>
+                <button 
+                  className="option-item delete" 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDelete();
+                  }}
+                >
                   <Trash2 size={16} />
                   <span>Delete</span>
                 </button>
@@ -322,23 +353,21 @@ const PostComponent = ({
           <span className="meta-tag">{safePost.meatType}</span>
         </div>
 
-        {/* Post Image */}
-        {safePost.image && (
-          <div 
-            className="post-image-container" 
-            onClick={() => navigate(`/post/${postId}`, {
-              state: { 
-                groupId: effectiveGroupId, 
-                isGroupPost: isActualGroupPost 
-              }
-            })}
-          >
+        {safePost.image ? (
+          <div className="post-image-container">
             <img src={safePost.image} alt={safePost.title} />
+          </div>
+        ) : (
+          <div className="post-image-placeholder">
+            🍽️
           </div>
         )}
 
         {safePost.video && !safePost.image && (
-          <div className="post-video-container" onClick={() => setShowFullRecipe(true)}>
+          <div className="post-video-container" onClick={(e) => {
+            e.stopPropagation();
+            setShowFullRecipe(true);
+          }}>
             <video src={safePost.video} controls />
           </div>
         )}
@@ -349,23 +378,29 @@ const PostComponent = ({
         <div className="post-stats">
           <button 
             className="stat-btn"
-            onClick={() => navigate(`/post/${postId}`, {
-              state: { 
-                groupId: effectiveGroupId, 
-                isGroupPost: isActualGroupPost 
-              }
-            })}
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(`/post/${postId}`, {
+                state: { 
+                  groupId: effectiveGroupId, 
+                  isGroupPost: isActualGroupPost 
+                }
+              });
+            }}
           >
             {localLikes.length} likes
           </button>
           <button 
             className="stat-btn"
-            onClick={() => navigate(`/post/${postId}`, {
-              state: { 
-                groupId: effectiveGroupId, 
-                isGroupPost: isActualGroupPost 
-              }
-            })}
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(`/post/${postId}`, {
+                state: { 
+                  groupId: effectiveGroupId, 
+                  isGroupPost: isActualGroupPost 
+                }
+              });
+            }}
           >
             {localComments.length} comments
           </button>
@@ -373,8 +408,11 @@ const PostComponent = ({
 
         <div className="post-actions-buttons">
           <button 
-            className={`action-btn ${isLiked ? 'active' : ''}`}
-            onClick={handleLike}
+            className={`action-btn like-button ${isLiked ? 'active' : ''}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleLike();
+            }}
             disabled={isSubmittingLike}
           >
             {isSubmittingLike ? (
@@ -385,12 +423,24 @@ const PostComponent = ({
             <span>Like</span>
           </button>
 
-          <button className="action-btn" onClick={() => setShowComments(!showComments)}>
+          <button 
+            className="action-btn comment-button" 
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowComments(!showComments);
+            }}
+          >
             <MessageCircle size={18} />
             <span>Comment</span>
           </button>
 
-          <button className="action-btn" onClick={() => onShare?.(safePost)}>
+          <button 
+            className="action-btn" 
+            onClick={(e) => {
+              e.stopPropagation();
+              onShare?.(safePost);
+            }}
+          >
             <Share2 size={18} />
             <span>Share</span>
           </button>
@@ -399,7 +449,7 @@ const PostComponent = ({
 
       {/* Comments Section */}
       {showComments && (
-        <div className="post-comments">
+        <div className="post-comments" onClick={(e) => e.stopPropagation()}>
           <div className="add-comment">
             <UserAvatar
               uri={currentUser?.avatar || currentUser?.userAvatar}
@@ -457,11 +507,17 @@ const PostComponent = ({
 
       {/* Full Recipe Modal */}
       {showFullRecipe && (
-        <div className="modal-overlay" onClick={() => setShowFullRecipe(false)}>
+        <div className="modal-overlay" onClick={(e) => {
+          e.stopPropagation();
+          setShowFullRecipe(false);
+        }}>
           <div className="recipe-modal" onClick={(e) => e.stopPropagation()}>
             <div className="recipe-modal-header">
               <h2>{safePost.title}</h2>
-              <button onClick={() => setShowFullRecipe(false)}>
+              <button onClick={(e) => {
+                e.stopPropagation();
+                setShowFullRecipe(false);
+              }}>
                 <X size={24} />
               </button>
             </div>
