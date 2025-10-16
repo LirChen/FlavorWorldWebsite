@@ -2,8 +2,10 @@ import axios from 'axios';
 
 class GroupService {
   constructor() {
-    this.baseURL = 'http://localhost:3000/api'; // Changed to localhost
-    
+    this.baseURL = import.meta.env.VITE_API_URL
+      ? `${import.meta.env.VITE_API_URL}/api`
+      : 'http://localhost:3000/api';
+
     this.axiosInstance = axios.create({
       baseURL: this.baseURL,
       timeout: 120000,
