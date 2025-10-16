@@ -126,6 +126,19 @@ if (process.env.NODE_ENV !== 'production') {
   });
 }
 
+// Test endpoints
+if (process.env.TEST_MODE === 'e2e' || process.env.NODE_ENV === 'test') {
+  (async () => {
+    try {
+      const testRoutes = await import('./routes/test.js');
+      app.use('/api/test', testRoutes.default);
+      console.log('Test endpoints loaded at /api/test');
+    } catch (err) {
+      console.error('Failed to load test routes:', err.message);
+    }
+  })();
+}
+
 // Error handling
 app.use((error, req, res, next) => {
   console.error('Error:', error);

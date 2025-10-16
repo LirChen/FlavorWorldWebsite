@@ -6,6 +6,8 @@
   "scripts": {
     "start": "cross-env NODE_ENV=production node server.js",
     "dev": "cross-env NODE_ENV=development nodemon server.js",
+    "build": "echo \"no build step\"",
+    "dev:e2e": "cross-env NODE_ENV=e2e TEST_MODE=e2e node server.js",
     "test": "cross-env NODE_ENV=test vitest run",
     "test:watch": "cross-env NODE_ENV=test vitest watch",
     "test:ui": "cross-env NODE_ENV=test vitest --ui",
@@ -20,10 +22,21 @@
     "test:feed": "cross-env NODE_ENV=test vitest run tests/routes/feed.test.js",
     "test:feed:watch": "cross-env NODE_ENV=test vitest watch tests/routes/feed.test.js",
     "test:notifications": "cross-env NODE_ENV=test vitest run tests/routes/notifications.test.js",
+    "test:groupChats": "cross-env NODE_ENV=test vitest run tests/routes/groupChats.test.js",
+    "test:groupChats:watch": "cross-env NODE_ENV=test vitest watch tests/routes/groupChats.test.js",
+    "test:groups": "cross-env NODE_ENV=test vitest run tests/routes/groups.test.js",
+    "test:groups:watch": "cross-env NODE_ENV=test vitest watch tests/routes/groups.test.js",
+    "test:groupPosts": "cross-env NODE_ENV=test vitest run tests/routes/groupPosts.test.js",
+    "test:groupPosts:watch": "cross-env NODE_ENV=test vitest watch tests/routes/groupPosts.test.js",
+    "test:recipes": "cross-env NODE_ENV=test vitest run tests/routes/recipes.test.js",
+    "test:recipes:watch": "cross-env NODE_ENV=test vitest watch tests/routes/recipes.test.js",
+    "test:upload": "cross-env NODE_ENV=test vitest run tests/routes/upload.test.js",
+    "test:upload:watch": "cross-env NODE_ENV=test vitest watch tests/routes/upload.test.js",
     "test:integration": "cross-env NODE_ENV=test vitest run tests/integration/",
     "test:e2e": "cross-env NODE_ENV=test vitest run tests/e2e/",
     "test:all": "npm run test:unit && npm run test:integration && npm run test:e2e",
-    "test:debug": "cross-env NODE_ENV=test node --inspect-brk ./node_modules/.bin/vitest run"
+    "test:debug": "cross-env NODE_ENV=test node --inspect-brk ./node_modules/.bin/vitest run",
+    "test:e2e:server": "node startE2EServer.js"
   },
   "keywords": [],
   "author": "",
@@ -33,6 +46,7 @@
     "bcrypt": "^6.0.0",
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
+    "cross-env": "^10.1.0",
     "dotenv": "^17.2.2",
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
@@ -46,6 +60,7 @@
     "@vitest/ui": "^1.0.4",
     "cross-env": "^10.1.0",
     "mongodb-memory-server": "^9.1.3",
+    "mongodb-memory-server": "^9.5.0",
     "supertest": "^6.3.3",
     "vitest": "^1.0.4"
   }

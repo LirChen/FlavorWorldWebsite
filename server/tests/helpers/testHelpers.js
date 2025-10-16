@@ -1,9 +1,9 @@
 // server/tests/helpers/testHelpers.js
-import User from '../../models/User.js';
-import PrivateChat from '../../models/PrivateChat.js';
-import Message from '../../models/Message.js';
-import Group from '../../models/Group.js';
-import GroupPost from '../../models/GroupPost.js';
+import User from '../../src/models/User.js';
+import PrivateChat from '../../src/models/PrivateChat.js';
+import Message from '../../src/models/Message.js';
+import Group from '../../src/models/Group.js';
+import GroupPost from '../../src/models/GroupPost.js';
 import mongoose from 'mongoose';
 
 /**

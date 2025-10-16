@@ -108,6 +108,7 @@ const PostComponent = ({
     if (!postId || !currentUserId || isSubmittingLike) return;
     setIsSubmittingLike(true);
 
+    // Optimistic update
     const newLikes = isLiked 
       ? localLikes.filter(id => id !== currentUserId)
       : [...localLikes, currentUserId];
@@ -126,13 +127,20 @@ const PostComponent = ({
           : await recipeService.likeRecipe(postId, currentUserId);
       }
 
-      if (result.success && result.data?.likes) {
-        setLocalLikes(result.data.likes);
-        setTimeout(() => onRefreshData?.(), 500);
+      if (result.success) {
+        if (result.data?.likes) {
+          setLocalLikes(result.data.likes);
+        }
+        if (onRefreshData) {
+          onRefreshData();
+        }
       } else {
+        // Revert on failure
         setLocalLikes(safePost.likes || []);
+        console.error('Like failed:', result.message);
       }
     } catch (error) {
+      // Revert on error
       setLocalLikes(safePost.likes || []);
       console.error('Like error:', error);
     } finally {
@@ -144,9 +152,24 @@ const PostComponent = ({
     if (!newComment.trim() || !postId || isSubmittingComment || !currentUserId) return;
     setIsSubmittingComment(true);
 
+    const commentText = newComment.trim();
+    
+    // Optimistic update - add comment locally
+    const tempComment = {
+      _id: `temp-${Date.now()}`,
+      text: commentText,
+      userId: currentUserId,
+      userName: currentUser?.fullName || currentUser?.name || 'Anonymous',
+      userAvatar: currentUser?.avatar || currentUser?.userAvatar || '',
+      createdAt: new Date().toISOString()
+    };
+    
+    setLocalComments(prev => [...prev, tempComment]);
+    setNewComment('');
+
     try {
       const commentData = {
-        text: newComment.trim(),
+        text: commentText,
         userId: currentUserId,
         userName: currentUser?.fullName || currentUser?.name || 'Anonymous',
         userAvatar: currentUser?.avatar || currentUser?.userAvatar || ''
@@ -160,34 +183,79 @@ const PostComponent = ({
       }
 
       if (result.success) {
-        setNewComment('');
         if (result.data?.comments) {
           setLocalComments(result.data.comments);
+        } else if (result.data?.comment) {
+          // If only single comment returned, update the temp one
+          setLocalComments(prev => 
+            prev.map(c => c._id === tempComment._id ? result.data.comment : c)
+          );
         }
-        onRefreshData?.();
+        
+        if (onRefreshData) {
+          onRefreshData();
+        }
+      } else {
+        // Revert on failure
+        setLocalComments(prev => prev.filter(c => c._id !== tempComment._id));
+        setNewComment(commentText); // Restore comment text
+        console.error('Add comment failed:', result.message);
+        alert(result.message || 'Failed to add comment');
       }
     } catch (error) {
+      // Revert on error
+      setLocalComments(prev => prev.filter(c => c._id !== tempComment._id));
+      setNewComment(commentText); // Restore comment text
       console.error('Comment error:', error);
+      alert('Failed to add comment. Please try again.');
     } finally {
       setIsSubmittingComment(false);
     }
   };
 
   const handleDeleteComment = async (commentId) => {
+    if (!commentId || !currentUserId) return;
+
+    // Confirm deletion
+    if (!window.confirm('Are you sure you want to delete this comment?')) {
+      return;
+    }
+
+    // Optimistic update - remove comment locally
+    const originalComments = [...localComments];
+    setLocalComments(prev => prev.filter(comment => comment._id !== commentId));
+
     try {
       let result;
       if (isActualGroupPost && effectiveGroupId) {
-        result = await groupService.deleteCommentFromGroupPost(effectiveGroupId, postId, commentId, currentUserId);
+        result = await groupService.deleteCommentFromGroupPost(
+          effectiveGroupId, 
+          postId, 
+          commentId, 
+          currentUserId
+        );
       } else {
         result = await recipeService.deleteComment(postId, commentId);
       }
       
       if (result.success) {
-        setLocalComments(prev => prev.filter(comment => comment._id !== commentId));
-        onRefreshData?.();
+        if (result.data?.comments) {
+          setLocalComments(result.data.comments);
+        }
+        if (onRefreshData) {
+          onRefreshData();
+        }
+      } else {
+        // Revert on failure
+        setLocalComments(originalComments);
+        console.error('Delete comment failed:', result.message);
+        alert(result.message || 'Failed to delete comment');
       }
     } catch (error) {
+      // Revert on error
+      setLocalComments(originalComments);
       console.error('Delete comment error:', error);
+      alert('Failed to delete comment. Please try again.');
     }
   };
  const handleSave = async () => {
