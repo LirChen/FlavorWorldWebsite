@@ -333,4 +333,136 @@ router.post('/reset-password', async (req, res) => {
   }
 });
 
+// CHANGE PASSWORD - add to auth.js
+router.put('/change-password', async (req, res) => {
+  try {
+    console.log('=== Change Password via Auth Route ===');
+    console.log('Request body:', req.body);
+    
+    const { userId, currentPassword, newPassword } = req.body;
+    
+    if (!userId || !currentPassword || !newPassword) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'User ID, current password and new password are required' 
+      });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ 
+        success: false,
+        message: 'User not found' 
+      });
+    }
+
+    console.log('User found:', user.email);
+
+    // Use comparePassword method
+    const isCurrentPasswordValid = await user.comparePassword(currentPassword);
+
+    if (!isCurrentPasswordValid) {
+      console.log('Current password is incorrect');
+      return res.status(401).json({ 
+        success: false,
+        message: 'Current password is incorrect' 
+      });
+    }
+
+    // Validate new password strength
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\da-zA-Z]).{8,}$/;
+    if (!passwordRegex.test(newPassword)) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Password must contain at least 8 characters, including uppercase and lowercase letters, a number and a special character' 
+      });
+    }
+
+    if (currentPassword === newPassword) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'New password must be different from current password' 
+      });
+    }
+
+    console.log('Setting new password...');
+    user.password = newPassword;
+    await user.save();
+
+    console.log('Password changed successfully for:', user.email);
+
+    res.json({
+      success: true,
+      message: 'Password changed successfully'
+    });
+    
+  } catch (error) {
+    console.error('Change password error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Failed to change password' 
+    });
+  }
+});
+
+router.patch('/change-password', async (req, res) => {
+  try {
+    const { userId, currentPassword, newPassword } = req.body;
+    
+    if (!userId || !currentPassword || !newPassword) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'User ID, current password and new password are required' 
+      });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ 
+        success: false,
+        message: 'User not found' 
+      });
+    }
+
+    const isCurrentPasswordValid = await user.comparePassword(currentPassword);
+
+    if (!isCurrentPasswordValid) {
+      return res.status(401).json({ 
+        success: false,
+        message: 'Current password is incorrect' 
+      });
+    }
+
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\da-zA-Z]).{8,}$/;
+    if (!passwordRegex.test(newPassword)) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Password must contain at least 8 characters, including uppercase and lowercase letters, a number and a special character' 
+      });
+    }
+
+    if (currentPassword === newPassword) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'New password must be different from current password' 
+      });
+    }
+
+    user.password = newPassword;
+    await user.save();
+
+    res.json({
+      success: true,
+      message: 'Password changed successfully'
+    });
+
+  } catch (error) {
+    console.error('Change password error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Failed to change password' 
+    });
+  }
+});
+
 export default router;

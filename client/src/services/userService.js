@@ -136,6 +136,9 @@ class UserService {
 
   async changePassword(passwordData) {
     try {
+      console.log('=== Change Password Request ===');
+      console.log('User ID:', passwordData.userId);
+      
       if (!passwordData.currentPassword || !passwordData.newPassword) {
         return {
           success: false,
@@ -143,20 +146,24 @@ class UserService {
         };
       }
       
+      // Only try the user endpoints
       const endpoints = [
-        { url: '/api/auth/change-password', method: 'put' },
-        { url: '/api/auth/change-password', method: 'patch' },
-        { url: '/api/user/change-password', method: 'put' }
+        { url: '/api/user/change-password', method: 'put' },
+        { url: '/api/user/change-password', method: 'patch' }
       ];
 
       for (const endpoint of endpoints) {
         try {
+          console.log(`Trying: ${endpoint.method.toUpperCase()} ${endpoint.url}`);
+          
           const response = await this.api({
             method: endpoint.method,
             url: endpoint.url,
             data: passwordData,
           });
 
+          console.log('Password changed successfully via:', endpoint.url);
+          
           return {
             success: true,
             message: 'Password changed successfully',
@@ -164,44 +171,13 @@ class UserService {
           };
           
         } catch (error) {
+          const status = error.response?.status;
+          const errorMsg = error.response?.data?.message;
+          
+          console.log(`${endpoint.url} - Status: ${status}, Error: ${errorMsg || error.message}`);
+          
           if (error.response) {
-            const status = error.response.status;
-            const errorMessage = error.response.data?.message || '';
-            
-            if (status === 400) {
-              if (errorMessage.includes('Invalid password') || 
-                  errorMessage.includes('Wrong password') ||
-                  errorMessage.includes('current password') ||
-                  errorMessage.includes('incorrect')) {
-                return {
-                  success: false,
-                  message: 'Current password is incorrect'
-                };
-              }
-              
-              if (errorMessage.includes('weak') || 
-                  errorMessage.includes('strong') ||
-                  errorMessage.includes('password requirements')) {
-                return {
-                  success: false,
-                  message: 'New password is too weak. Use letters, numbers and symbols'
-                };
-              }
-
-              if (errorMessage.includes('same') || 
-                  errorMessage.includes('identical')) {
-                return {
-                  success: false,
-                  message: 'New password must be different from current password'
-                };
-              }
-              
-              return {
-                success: false,
-                message: errorMessage || 'Invalid password data provided'
-              };
-            }
-
+            // Return specific errors immediately
             if (status === 401) {
               return {
                 success: false,
@@ -209,47 +185,30 @@ class UserService {
               };
             }
 
-            if (status === 403) {
+            if (status === 400) {
               return {
                 success: false,
-                message: 'You are not authorized to change this password'
+                message: errorMsg || 'Invalid password data'
               };
             }
 
             if (status === 404) {
-              return {
-                success: false,
-                message: 'User account not found'
-              };
+              continue;
             }
-
-            if (status >= 500) {
-              return {
-                success: false,
-                message: 'Server error. Please try again later.'
-              };
-            }
-
-            return {
-              success: false,
-              message: errorMessage || 'Password change failed. Please try again.'
-            };
-          }
-
-          if (error.code === 'ECONNABORTED' || error.request) {
-            continue;
           }
 
           continue;
         }
       }
 
+      console.log('All endpoints failed');
       return {
         success: false,
-        message: 'Password change service is currently unavailable. Please contact support.'
+        message: 'Password change service is currently unavailable.'
       };
       
-    } catch (error) {      
+    } catch (error) {
+      console.error('Change password error:', error);      
       return {
         success: false,
         message: 'An unexpected error occurred. Please try again later.'
@@ -257,32 +216,21 @@ class UserService {
     }
   }
 
-  async updateAvatar(imageFile) {
+  async updateAvatar(formData) {
     try {
       console.log('Uploading avatar...');
       
-      if (!imageFile || !(imageFile instanceof File)) {
+      // Validate that formData is FormData
+      if (!(formData instanceof FormData)) {
         return {
           success: false,
-          message: 'No image file selected'
+          message: 'Invalid data format - FormData expected'
         };
       }
-
-      // Validate image file
-      const validation = this.validateImageFile(imageFile);
-      if (!validation.valid) {
-        return {
-          success: false,
-          message: validation.message
-        };
-      }
-      
-      const formData = new FormData();
-      formData.append('avatar', imageFile);
 
       const endpoints = [
-        '/api/upload/avatar',
-        '/api/user/upload-avatar', 
+        '/api/user/upload-avatar',
+        '/api/upload/avatar', 
         '/api/auth/avatar'
       ];
 
@@ -297,34 +245,56 @@ class UserService {
             timeout: 30000,
           });
 
-          if (response.data.success) {
+          if (response.data.success || response.data.url) {
             console.log('Avatar uploaded successfully via:', endpoint);
             
-            // Update user details in localStorage
+            const avatarUrl = response.data.url || response.data.avatarUrl;
+            
+            // Update user in localStorage
             const currentUser = this.getCurrentUser();
-            if (currentUser && response.data.avatarUrl) {
-              currentUser.avatar = response.data.avatarUrl;
+            if (currentUser && avatarUrl) {
+              currentUser.avatar = avatarUrl;
               localStorage.setItem('user', JSON.stringify(currentUser));
             }
             
             return {
               success: true,
               message: 'Profile picture updated successfully',
-              data: response.data
+              data: {
+                url: avatarUrl,
+                ...response.data
+              }
             };
           }
         } catch (error) {
-          console.log(`Endpoint ${endpoint} error:`, error.message);
+          console.log(`Endpoint ${endpoint} error:`, error.response?.data?.error || error.message);
+          
+          // If we got a response with error, try next endpoint
+          if (error.response?.status === 404 || error.response?.status === 500) {
+            continue;
+          }
+          
+          // If it's a validation error, return it
+          if (error.response?.status === 400 || error.response?.status === 413) {
+            return {
+              success: false,
+              message: error.response.data?.error || error.response.data?.message || 'Invalid image file'
+            };
+          }
+          
           continue;
         }
       }
 
+      // If all endpoints failed, return success: false but don't block profile update
+      console.log('All avatar upload endpoints failed');
       return {
         success: false,
-        message: 'Image upload is not supported yet. Profile will be updated without image.'
+        message: 'Could not upload avatar - profile will be updated without image change'
       };
       
     } catch (error) {
+      console.error('Upload avatar error:', error);
       return {
         success: false,
         message: 'An error occurred while uploading the image'

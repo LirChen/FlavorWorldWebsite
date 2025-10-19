@@ -61,29 +61,30 @@ const EditProfileScreen = () => {
 
       if (newAvatar) {
         setIsUploadingAvatar(true);
+        
         const formData = new FormData();
         formData.append('avatar', newAvatar);
         
         const avatarResult = await userService.updateAvatar(formData);
         
-        if (avatarResult.success) {
-          avatarUrl = avatarResult.data.url;
-        } else {
-          alert(avatarResult.message || 'Failed to upload avatar');
-          return;
-        }
         setIsUploadingAvatar(false);
+        
+        if (avatarResult.success && avatarResult.data?.url) {
+          avatarUrl = avatarResult.data.url;
+          console.log('Avatar uploaded successfully:', avatarUrl);
+        } else {
+          console.log('Avatar upload failed, continuing without new avatar');
+        }
       }
 
       const profileData = {
         userId: currentUser?.id || currentUser?._id,
         fullName: fullName.trim(),
         bio: bio.trim(),
+        avatar: avatarUrl 
       };
 
-      if (avatarUrl && avatarUrl !== currentUser?.avatar) {
-        profileData.avatar = avatarUrl;
-      }
+      console.log('Updating profile with data:', profileData);
 
       const result = await userService.updateProfile(profileData);
 
@@ -101,6 +102,7 @@ const EditProfileScreen = () => {
         alert(result.message || 'Failed to update profile');
       }
     } catch (error) {
+      console.error('Save profile error:', error);
       alert(error.message || 'Failed to update profile');
     } finally {
       setIsLoading(false);

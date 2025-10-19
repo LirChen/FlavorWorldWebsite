@@ -2,10 +2,8 @@ import axios from 'axios';
 
 class GroupService {
   constructor() {
-    this.baseURL = import.meta.env.VITE_API_URL
-      ? `${import.meta.env.VITE_API_URL}/api`
-      : 'http://localhost:3000/api';
-
+    this.baseURL = 'http://localhost:3000/api'; 
+    
     this.axiosInstance = axios.create({
       baseURL: this.baseURL,
       timeout: 120000,
@@ -481,6 +479,7 @@ class GroupService {
       };
       
     } catch (error) {
+      console.error('Update group error:', error);
       
       if (error.code === 'ECONNABORTED') {
         return {
@@ -839,12 +838,10 @@ class GroupService {
 
       console.log('Groups fetched for discover');
       
-      // סנן קבוצות שהמשתמש לא חבר בהן
       const nonMemberGroups = response.data.filter(group => 
         !this.isMember(group, userId)
       );
       
-      // בחר מדגם רנדומלי של קבוצות
       const shuffled = nonMemberGroups.sort(() => 0.5 - Math.random());
       const discoverGroups = shuffled.slice(0, limit);
       
@@ -871,7 +868,6 @@ class GroupService {
     }
   }
 
-  // פונקציות עזר חדשות לטיפול בקבצים ב-React
   createImageFile(inputElement) {
     return new Promise((resolve) => {
       if (inputElement.files && inputElement.files[0]) {
