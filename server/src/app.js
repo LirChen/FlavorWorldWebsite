@@ -8,7 +8,6 @@ import { Server } from 'socket.io';
 
 const app = express();
 const server = http.createServer(app);
-
 // Socket.IO - only if not in test mode
 let io;
 if (process.env.NODE_ENV !== 'test') {
@@ -18,19 +17,34 @@ if (process.env.NODE_ENV !== 'test') {
       methods: ["GET", "POST"]
     }
   });
-  console.log('🔌 Socket.IO initialized');
+  console.log('Socket.IO initialized');
 } else {
   io = {
     on: () => {},
     emit: () => {},
     to: () => ({ emit: () => {} })
   };
-  console.log('🧪 Socket.IO mocked for tests');
+  console.log(' Socket.IO mocked for tests');
 }
 
 // Middleware
-app.use(cors());
-app.use(express.json({ limit: '50mb' }));
+const allowedOrigins = [
+  'http://localhost:5173', 
+  'http://localhost:3000', 
+  'http://localhost:3001',
+  'https://flavorworldwebsiteclient.onrender.com'
+];
+app.use(cors({
+  origin: allowedOrigins,
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  credentials: true
+}));
+app.use((req, res, next) => {
+  if (req.method === 'OPTIONS') {
+    return cors()(req, res, next);
+  }
+  next();
+});app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Only log in non-test environments

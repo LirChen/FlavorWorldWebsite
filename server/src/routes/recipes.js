@@ -390,4 +390,112 @@ router.delete('/:id/comments/:commentId', authenticateToken, async (req, res) =>
   }
 });
 
+router.delete('/:id/comments/:commentId', authenticateToken, async (req, res) => {
+  try {
+    const recipe = await Recipe.findById(req.params.id);
+    if (!recipe) return res.status(404).json({ message: 'Recipe not found' });
+
+    const comment = recipe.comments.id(req.params.commentId);
+    if (!comment) return res.status(404).json({ message: 'Comment not found' });
+
+    if (comment.userId.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Not authorized to delete this comment' });
+    }
+
+    recipe.comments.pull({ _id: req.params.commentId });
+    await recipe.save();
+
+    res.json({ message: 'Comment deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting comment:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.post('/:id/save', authenticateToken, async (req, res) => {
+  try {
+    const recipe = await Recipe.findById(req.params.id);
+    if (!recipe) return res.status(404).json({ message: 'Recipe not found' });
+
+    const user = await User.findById(req.user._id);
+    const savedItem = user.savedRecipes.find(item => item.recipeId.toString() === req.params.id);
+    
+    if (savedItem) {
+      return res.status(400).json({ message: 'Recipe already saved' });
+    }
+
+    user.savedRecipes.push({ recipeId: req.params.id, savedAt: new Date() });
+    await user.save();
+
+    res.json({ message: 'Recipe saved successfully' });
+  } catch (error) {
+    console.error('Error saving recipe:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.delete('/:id/save', authenticateToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    user.savedRecipes = user.savedRecipes.filter(item => item.recipeId.toString() !== req.params.id);
+    await user.save();
+
+    res.json({ message: 'Recipe unsaved successfully' });
+  } catch (error) {
+    console.error('Error unsaving recipe:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.get('/saved/all', authenticateToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    
+    if (!user.savedRecipes || user.savedRecipes.length === 0) {
+      return res.json([]);
+    }
+
+    const recipeIds = user.savedRecipes.map(item => item.recipeId);
+    
+    const recipes = await Recipe.find({
+      _id: { $in: recipeIds }
+    });
+
+    const enrichedRecipes = await Promise.all(
+      recipes.map(async (recipe) => {
+        try {
+          const recipeUser = await User.findById(recipe.userId);
+          const savedItem = user.savedRecipes.find(
+            item => item.recipeId.toString() === recipe._id.toString()
+          );
+          
+          return {
+            ...recipe.toObject(),
+            userName: recipeUser ? recipeUser.fullName : 'Unknown User',
+            userAvatar: recipeUser ? recipeUser.avatar : null,
+            savedAt: savedItem ? savedItem.savedAt : new Date()
+          };
+        } catch (error) {
+          const savedItem = user.savedRecipes.find(
+            item => item.recipeId.toString() === recipe._id.toString()
+          );
+          return {
+            ...recipe.toObject(),
+            userName: 'Unknown User',
+            userAvatar: null,
+            savedAt: savedItem ? savedItem.savedAt : new Date()
+          };
+        }
+      })
+    );
+
+    enrichedRecipes.sort((a, b) => new Date(b.savedAt) - new Date(a.savedAt));
+
+    res.json(enrichedRecipes);
+  } catch (error) {
+    console.error('Error fetching saved recipes:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 export default router;

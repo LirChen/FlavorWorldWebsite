@@ -838,12 +838,10 @@ class GroupService {
 
       console.log('Groups fetched for discover');
       
-      // סנן קבוצות שהמשתמש לא חבר בהן
       const nonMemberGroups = response.data.filter(group => 
         !this.isMember(group, userId)
       );
       
-      // בחר מדגם רנדומלי של קבוצות
       const shuffled = nonMemberGroups.sort(() => 0.5 - Math.random());
       const discoverGroups = shuffled.slice(0, limit);
       
@@ -870,7 +868,6 @@ class GroupService {
     }
   }
 
-  // פונקציות עזר חדשות לטיפול בקבצים ב-React
   createImageFile(inputElement) {
     return new Promise((resolve) => {
       if (inputElement.files && inputElement.files[0]) {

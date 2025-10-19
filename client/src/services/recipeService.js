@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:3000/api'; 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -207,14 +207,14 @@ export const recipeService = {
           },
         });
 
-        console.log('✅ Recipe without media uploaded successfully!');
+        console.log(' Recipe without media uploaded successfully!');
         return { success: true, data: response.data };
       }
 
     } catch (error) {
       let errorMessage = 'Failed to create recipe';
       
-      console.error('❌ Recipe creation error details:', {
+      console.error(' Recipe creation error details:', {
         message: error.message,
         response: error.response?.data,
         status: error.response?.status,
@@ -241,7 +241,7 @@ export const recipeService = {
         errorMessage = error.message || 'Unknown error occurred';
       }
       
-      console.error('❌ Recipe creation error:', errorMessage);
+      console.error(' Recipe creation error:', errorMessage);
       
       return {
         success: false,
@@ -254,18 +254,18 @@ export const recipeService = {
   getAllRecipes: async (userId = null) => {
     try {
       if (userId) {
-        console.log('🔄 Fetching personalized feed...');
+        console.log(' Fetching personalized feed...');
         const result = await recipeService.getFeed(userId);
         return result;
       } else {
-        console.log('📚 Fetching all recipes from server...');
+        console.log(' Fetching all recipes from server...');
         const response = await api.get('/recipes');
-        console.log(`📊 Server response: ${response.data?.length || 0} recipes`);
+        console.log(` Server response: ${response.data?.length || 0} recipes`);
         
         return { success: true, data: response.data };
       }
     } catch (error) {
-      console.error('❌ Get recipes error:', error.message);
+      console.error(' Get recipes error:', error.message);
       return {
         success: false,
         message: error.response?.data?.message || error.message || 'Failed to fetch recipes'
@@ -544,6 +544,7 @@ export const recipeService = {
       };
     }
   },
+  
 
   deleteComment: async (recipeId, commentId) => {
     try {
@@ -557,8 +558,41 @@ export const recipeService = {
       };
     }
   },
+ saveRecipe: async (recipeId) => {
+  try {
+    const response = await api.post(`/recipes/${recipeId}/save`);
+    return { success: true, data: response.data };
+  } catch (error) {
+    return {
+      success: false,
+      message: error.response?.data?.message || 'Failed to save recipe'
+    };
+  }
+},
 
-  // New helper functions for React
+unsaveRecipe: async (recipeId) => {
+  try {
+    const response = await api.delete(`/recipes/${recipeId}/save`);
+    return { success: true, data: response.data };
+  } catch (error) {
+    return {
+      success: false,
+      message: error.response?.data?.message || 'Failed to unsave recipe'
+    };
+  }
+},
+
+getSavedRecipes: async () => {
+  try {
+    const response = await api.get('/recipes/saved/all');
+    return { success: true, data: response.data };
+  } catch (error) {
+    return {
+      success: false,
+      message: error.response?.data?.message || 'Failed to get saved recipes'
+    };
+  }
+},
   
   // Media file validation
   validateMediaFile: (file) => {
@@ -651,4 +685,5 @@ export const recipeService = {
       img.src = URL.createObjectURL(file);
     });
   }
+  
 };
