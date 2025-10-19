@@ -4,6 +4,7 @@ import upload from '../middleware/upload.js';
 import { isMongoConnected } from '../config/database.js';
 import { createNotification } from '../utils/helpers.js';
 import User from '../models/User.js';
+import bcrypt from 'bcryptjs';
 
 const router = express.Router();
 
@@ -117,48 +118,171 @@ const updateUserProfile = async (req, res) => {
 router.put('/profile', updateUserProfile);
 router.patch('/profile', updateUserProfile);
 
-// CHANGE PASSWORD
+// CHANGE PASSWORD - Replace BOTH old routes with this single one
 router.put('/change-password', async (req, res) => {
   try {
+    console.log('=== Change Password Debug ===');
+    console.log('Request body:', req.body);
+    
     if (!isMongoConnected()) {
-      return res.status(503).json({ message: 'Database not available' });
+      return res.status(503).json({ 
+        success: false,
+        message: 'Database not available' 
+      });
     }
 
     const { userId, currentPassword, newPassword } = req.body;
     
     if (!userId || !currentPassword || !newPassword) {
-      return res.status(400).json({ message: 'User ID, current password and new password are required' });
+      return res.status(400).json({ 
+        success: false,
+        message: 'User ID, current password and new password are required' 
+      });
     }
 
     if (!mongoose.Types.ObjectId.isValid(userId)) {
-      return res.status(400).json({ message: 'Invalid user ID' });
+      return res.status(400).json({ 
+        success: false,
+        message: 'Invalid user ID' 
+      });
     }
 
     const user = await User.findById(userId);
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ 
+        success: false,
+        message: 'User not found' 
+      });
     }
 
-    if (user.password !== currentPassword) {
-      return res.status(400).json({ message: 'Current password is incorrect' });
+    console.log('User found:', user.email);
+    console.log('Verifying current password...');
+
+    // Use the comparePassword method from the User model
+    const isCurrentPasswordValid = await user.comparePassword(currentPassword);
+
+    if (!isCurrentPasswordValid) {
+      console.log('Current password is incorrect');
+      return res.status(401).json({ 
+        success: false,
+        message: 'Current password is incorrect' 
+      });
+    }
+
+    // Validate new password strength
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\da-zA-Z]).{8,}$/;
+    if (!passwordRegex.test(newPassword)) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Password must contain at least 8 characters, including uppercase and lowercase letters, a number and a special character' 
+      });
+    }
+
+    // Check if new password is same as current
+    if (currentPassword === newPassword) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'New password must be different from current password' 
+      });
+    }
+
+    console.log('Setting new password...');
+    // Just set the password - the pre('save') hook will hash it automatically
+    user.password = newPassword;
+    await user.save();
+
+    console.log('Password changed successfully for:', user.email);
+
+    res.json({
+      success: true,
+      message: 'Password changed successfully'
+    });
+    
+  } catch (error) {
+    console.error('Change password error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Failed to change password' 
+    });
+  }
+});
+
+// Also add PATCH method for compatibility
+router.patch('/change-password', async (req, res) => {
+  try {
+    console.log('Change password via PATCH');
+    
+    if (!isMongoConnected()) {
+      return res.status(503).json({ 
+        success: false,
+        message: 'Database not available' 
+      });
+    }
+
+    const { userId, currentPassword, newPassword } = req.body;
+
+    if (!userId || !currentPassword || !newPassword) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'User ID, current password and new password are required' 
+      });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Invalid user ID' 
+      });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ 
+        success: false,
+        message: 'User not found' 
+      });
+    }
+
+    // Use comparePassword method
+    const isCurrentPasswordValid = await user.comparePassword(currentPassword);
+
+    if (!isCurrentPasswordValid) {
+      return res.status(401).json({ 
+        success: false,
+        message: 'Current password is incorrect' 
+      });
     }
 
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\da-zA-Z]).{8,}$/;
     if (!passwordRegex.test(newPassword)) {
       return res.status(400).json({ 
+        success: false,
         message: 'Password must contain at least 8 characters, including uppercase and lowercase letters, a number and a special character' 
       });
     }
 
+    if (currentPassword === newPassword) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'New password must be different from current password' 
+      });
+    }
+
+    // Set password - pre('save') hook will hash it
     user.password = newPassword;
     await user.save();
 
     res.json({
+      success: true,
       message: 'Password changed successfully'
     });
-    
+
   } catch (error) {
-    res.status(500).json({ message: 'Failed to change password' });
+    console.error('Change password error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Failed to change password' 
+    });
   }
 });
 

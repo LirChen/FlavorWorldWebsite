@@ -134,15 +134,7 @@ const GroupSettingsScreen = () => {
         updatedBy: currentUser?.id || currentUser?._id
       };
 
-      const formDataToSend = new FormData();
-      if (selectedImage) {
-        formDataToSend.append('image', selectedImage);
-      }
-      Object.keys(updateData).forEach(key => {
-        formDataToSend.append(key, updateData[key]);
-      });
-
-      const result = await groupService.updateGroup(groupId, formDataToSend);
+      const result = await groupService.updateGroup(groupId, updateData, selectedImage);
 
       if (result.success) {
         alert('Group settings updated successfully');
@@ -211,12 +203,27 @@ const GroupSettingsScreen = () => {
     return (
       <div className="group-settings-screen">
         <header className="settings-header">
-          <button className="back-btn" onClick={() => navigate(-1)}>
-            <ArrowLeft size={24} />
-          </button>
-          <h1>Group Settings</h1>
-          <div className="header-placeholder" />
-        </header>
+        <button className="back-btn" onClick={() => navigate(-1)}>
+          <ArrowLeft size={24} />
+        </button>
+        
+        <h1>Group Settings</h1>
+        
+        <button 
+          className="save-btn"
+          onClick={handleSaveChanges}
+          disabled={saving}
+        >
+          {saving ? (
+            <Loader2 className="spinner" size={20} />
+          ) : (
+            <>
+              <Save size={20} />
+              <span>Save</span>
+            </>
+          )}
+        </button>
+      </header>
         
         <div className="error-container">
           <AlertCircle size={80} />

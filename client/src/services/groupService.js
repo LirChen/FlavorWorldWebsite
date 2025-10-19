@@ -2,7 +2,7 @@ import axios from 'axios';
 
 class GroupService {
   constructor() {
-    this.baseURL = 'http://localhost:3000/api'; // Changed to localhost
+    this.baseURL = 'http://localhost:3000/api'; 
     
     this.axiosInstance = axios.create({
       baseURL: this.baseURL,
@@ -479,6 +479,7 @@ class GroupService {
       };
       
     } catch (error) {
+      console.error('Update group error:', error);
       
       if (error.code === 'ECONNABORTED') {
         return {

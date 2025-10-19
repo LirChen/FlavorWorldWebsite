@@ -663,7 +663,7 @@ router.delete('/:groupId/leave/:userId', async (req, res) => {
 });
 
 // UPDATE GROUP
-router.put('/:id', upload.single('image'), async (req, res) => {
+router.put('/:id', upload.any(), async (req, res) => {
   try {
     if (!isMongoConnected()) {
       return res.status(503).json({ message: 'Database not available' });
@@ -684,6 +684,7 @@ router.put('/:id', upload.single('image'), async (req, res) => {
 
     console.log('Updating group:', groupId);
     console.log('Updated by:', updatedBy);
+    console.log('Request body:', req.body);
 
     const group = await Group.findById(groupId);
     if (!group) {
@@ -712,46 +713,45 @@ router.put('/:id', upload.single('image'), async (req, res) => {
 
     console.log('Permission granted');
 
+    // Update basic fields
     if (name) group.name = name;
     if (description !== undefined) group.description = description;
     if (category) group.category = category;
     if (rules !== undefined) group.rules = rules;
-    if (isPrivate !== undefined) group.isPrivate = isPrivate === 'true';
+    if (isPrivate !== undefined) group.isPrivate = isPrivate === 'true' || isPrivate === true;
 
+    // Update settings
     if (!group.settings) group.settings = {};
     
     if (allowMemberPosts !== undefined) {
-      group.settings.allowMemberPosts = allowMemberPosts === 'true';
+      group.settings.allowMemberPosts = allowMemberPosts === 'true' || allowMemberPosts === true;
       group.allowMemberPosts = group.settings.allowMemberPosts; 
     }
     
     if (requireApproval !== undefined) {
-      const requireApprovalValue = (isPrivate === 'true') ? (requireApproval === 'true') : false;
+      const isPrivateGroup = isPrivate === 'true' || isPrivate === true || group.isPrivate;
+      const requireApprovalValue = isPrivateGroup ? (requireApproval === 'true' || requireApproval === true) : false;
       group.settings.requireApproval = requireApprovalValue;
       group.requireApproval = requireApprovalValue; 
     }
     
     if (allowInvites !== undefined) {
-      group.settings.allowInvites = allowInvites === 'true';
+      group.settings.allowInvites = allowInvites === 'true' || allowInvites === true;
       group.allowInvites = group.settings.allowInvites; 
     }
 
-    if (req.file) {
-      console.log('New image uploaded:', req.file.filename);
-      if (group.image) {
-        const fs = require('fs');
-        const path = require('path');
-        const oldImagePath = path.join(__dirname, '..', 'public', group.image);
-        if (fs.existsSync(oldImagePath)) {
-          try {
-            fs.unlinkSync(oldImagePath);
-            console.log('Old image deleted');
-          } catch (err) {
-            console.log('Could not delete old image:', err.message);
-          }
-        }
+    // Handle image update
+    if (req.files && req.files.length > 0) {
+      const imageFile = req.files.find(file => 
+        file.fieldname === 'image' || 
+        file.mimetype.startsWith('image/')
+      );
+      
+      if (imageFile) {
+        console.log('New image uploaded, converting to base64');
+        const base64Image = imageFile.buffer.toString('base64');
+        group.image = `data:${imageFile.mimetype};base64,${base64Image}`;
       }
-      group.image = `/uploads/groups/${req.file.filename}`;
     }
 
     group.updatedAt = new Date();
@@ -765,6 +765,7 @@ router.put('/:id', upload.single('image'), async (req, res) => {
     });
 
   } catch (error) {
+    console.error('Update group error:', error);
     res.status(500).json({
       message: 'Failed to update group',
       error: error.message

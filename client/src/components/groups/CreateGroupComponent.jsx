@@ -95,15 +95,7 @@ const CreateGroupComponent = ({ onGroupCreated }) => {
         allowInvites
       };
 
-      const formData = new FormData();
-      if (groupImage) {
-        formData.append('image', groupImage);
-      }
-      Object.keys(groupData).forEach(key => {
-        formData.append(key, groupData[key]);
-      });
-
-      const result = await groupService.createGroup(formData);
+      const result = await groupService.createGroup(groupData, groupImage);
 
       if (result.success) {
         alert('Your group has been created successfully!');

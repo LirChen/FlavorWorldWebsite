@@ -15,10 +15,12 @@
   background: var(--white);
   border-bottom: 1px solid var(--border);
   padding: 12px 16px;
-  display: flex;
+  display: grid;
+  grid-template-columns: 40px 1fr 100px;
   align-items: center;
-  justify-content: space-between;
-  box-shadow: var(--shadow);
+  gap: 16px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  height: 60px;
 }
 
 .settings-header h1 {
@@ -26,15 +28,17 @@
   font-weight: 600;
   color: var(--text);
   margin: 0;
-  flex: 1;
   text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .back-btn {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: var(--background);
+  background: transparent;
   border: none;
   display: flex;
   align-items: center;
@@ -42,15 +46,17 @@
   cursor: pointer;
   transition: background 0.2s;
   color: var(--accent);
+  flex-shrink: 0;
 }
 
 .back-btn:hover {
-  background: var(--hover);
+  background: var(--background);
 }
 
 .save-btn {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   padding: 8px 16px;
   background: var(--primary);
@@ -61,6 +67,8 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
+  white-space: nowrap;
+  height: 36px;
 }
 
 .save-btn:hover:not(:disabled) {
@@ -73,8 +81,8 @@
   cursor: not-allowed;
 }
 
-.header-placeholder {
-  width: 40px;
+.save-btn span {
+  display: inline-block;
 }
 
 /* Loading & Error */
