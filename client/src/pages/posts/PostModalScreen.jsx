@@ -13,6 +13,7 @@ import './PostModalScreen.css';
 import { useAuth } from '../../services/AuthContext';
 import { recipeService } from '../../services/recipeService';
 import { groupService } from '../../services/groupService';
+import { userService } from '../../services/userService';
 import UserAvatar from '../../components/common/UserAvatar';
 
 const PostModalScreen = () => {
@@ -25,7 +26,9 @@ const PostModalScreen = () => {
 
   const [post, setPost] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('details'); // 'details', 'likes', 'comments'
+  const [activeTab, setActiveTab] = useState('details');
+  const [likesWithUsers, setLikesWithUsers] = useState([]); 
+  const [loadingLikes, setLoadingLikes] = useState(false); 
 
   const formatTime = (minutes) => {
     if (!minutes || isNaN(minutes)) return '0m';
@@ -42,6 +45,13 @@ const PostModalScreen = () => {
   useEffect(() => {
     loadPost();
   }, [postId]);
+
+  // Load user details for likes when switching to likes tab
+  useEffect(() => {
+    if (activeTab === 'likes' && post && post.likes?.length > 0 && likesWithUsers.length === 0) {
+      loadLikesWithUsers();
+    }
+  }, [activeTab, post]);
 
   const loadPost = async () => {
     try {
@@ -78,6 +88,43 @@ const PostModalScreen = () => {
       navigate(-1);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Load user details for each like
+  const loadLikesWithUsers = async () => {
+    if (!post?.likes || post.likes.length === 0) return;
+
+    setLoadingLikes(true);
+    try {
+      const usersPromises = post.likes.map(async (userId) => {
+        try {
+          const result = await userService.getUserProfile(userId);
+          if (result.success) {
+            return {
+              userId: userId,
+              userName: result.data.fullName || 'Unknown User',
+              userAvatar: result.data.avatar || null,
+              userBio: result.data.bio || null
+            };
+          }
+        } catch (error) {
+          console.error(`Failed to load user ${userId}:`, error);
+        }
+        return {
+          userId: userId,
+          userName: 'Unknown User',
+          userAvatar: null,
+          userBio: null
+        };
+      });
+
+      const users = await Promise.all(usersPromises);
+      setLikesWithUsers(users);
+    } catch (error) {
+      console.error('Load likes with users error:', error);
+    } finally {
+      setLoadingLikes(false);
     }
   };
 
@@ -237,20 +284,30 @@ const PostModalScreen = () => {
 
             {activeTab === 'likes' && (
               <div className="likes-tab">
-                {post.likes?.length > 0 ? (
+                {loadingLikes ? (
+                  <div className="loading-state">
+                    <Loader2 className="spinner" size={30} />
+                    <p>Loading likes...</p>
+                  </div>
+                ) : likesWithUsers.length > 0 ? (
                   <div className="likes-list">
-                    {post.likes.map((userId, index) => (
+                    {likesWithUsers.map((user) => (
                       <div
-                        key={userId || index}
+                        key={user.userId}
                         className="like-item"
-                        onClick={() => handleUserClick(userId)}
+                        onClick={() => handleUserClick(user.userId)}
                       >
                         <UserAvatar
-                          uri={null}
-                          name="User"
+                          uri={user.userAvatar}
+                          name={user.userName}
                           size={40}
                         />
-                        <span>User {index + 1}</span>
+                        <div className="like-user-info">
+                          <span className="like-user-name">{user.userName}</span>
+                          {user.userBio && (
+                            <span className="like-user-bio">{user.userBio}</span>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>

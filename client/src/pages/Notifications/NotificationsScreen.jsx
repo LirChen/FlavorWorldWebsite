@@ -13,15 +13,17 @@ import {
 import './NotificationsScreen.css';
 import { useAuth } from '../../services/AuthContext';
 import { notificationService } from '../../services/notificationService';
+import { useNotifications } from '../../contexts/NotificationContext';
 import UserAvatar from '../../components/common/UserAvatar';
 
 const NotificationsScreen = () => {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
+  const { unreadCount, decrementUnreadCount, resetUnreadCount } = useNotifications(); 
+  
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
 
   const loadNotifications = useCallback(async () => {
     try {
@@ -38,8 +40,6 @@ const NotificationsScreen = () => {
       
       if (result.success) {
         setNotifications(result.data || []);
-        const unread = (result.data || []).filter(n => !n.read).length;
-        setUnreadCount(unread);
       } else {
         console.error('Failed to load notifications:', result.message);
         alert(result.message || 'Failed to load notifications');
@@ -74,12 +74,12 @@ const NotificationsScreen = () => {
             n._id === notificationId ? { ...n, read: true } : n
           )
         );
-        setUnreadCount(prev => Math.max(0, prev - 1));
+        decrementUnreadCount(); 
       }
     } catch (error) {
       console.error('Mark as read error:', error);
     }
-  }, []);
+  }, [decrementUnreadCount]);
 
   const handleMarkAllAsRead = useCallback(async () => {
     try {
@@ -91,14 +91,16 @@ const NotificationsScreen = () => {
         setNotifications(prev => 
           prev.map(n => ({ ...n, read: true }))
         );
-        setUnreadCount(0);
+        resetUnreadCount(); 
       }
     } catch (error) {
       console.error('Mark all as read error:', error);
     }
-  }, [currentUser]);
+  }, [currentUser, resetUnreadCount]);
 
   const handleNotificationPress = useCallback(async (notification) => {
+    console.log('Notification clicked:', notification);
+    
     switch (notification.type) {
       case 'follow':
         if (notification.fromUserId) {
@@ -108,12 +110,31 @@ const NotificationsScreen = () => {
       
       case 'like':
       case 'comment':
-      case 'group_post':
-        if (notification.postId) {
+        if (notification.recipeId) {
+          console.log('Navigating to recipe:', notification.recipeId);
+          navigate(`/post/${notification.recipeId}`, {
+            state: {
+              isGroupPost: false
+            }
+          });
+        } else if (notification.postId && notification.groupId) {
+          console.log('Navigating to group post:', notification.postId);
           navigate(`/post/${notification.postId}`, {
             state: {
-              groupId: notification.groupId || null,
-              isGroupPost: !!notification.groupId
+              groupId: notification.groupId,
+              isGroupPost: true
+            }
+          });
+        }
+        break;
+
+      case 'group_post':
+        if (notification.postId && notification.groupId) {
+          console.log('Navigating to group post:', notification.postId);
+          navigate(`/post/${notification.postId}`, {
+            state: {
+              groupId: notification.groupId,
+              isGroupPost: true
             }
           });
         }
@@ -135,6 +156,7 @@ const NotificationsScreen = () => {
       handleMarkAsRead(notification._id);
     }
   }, [handleMarkAsRead, navigate]);
+
   const getNotificationIcon = (type) => {
     switch (type) {
       case 'like':

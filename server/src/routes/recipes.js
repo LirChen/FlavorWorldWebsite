@@ -4,6 +4,7 @@ import User from '../models/User.js';
 import jwt from 'jsonwebtoken';
 import upload from '../middleware/upload.js';
 import { isMongoConnected } from '../config/database.js';
+import { createNotification } from '../utils/helpers.js';
 
 const router = express.Router();
 
@@ -244,7 +245,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// ✅ LIKE RECIPE
+// LIKE RECIPE
 router.post('/:id/like', authenticateToken, async (req, res) => {
   try {
     if (!isMongoConnected()) {
@@ -265,7 +266,26 @@ router.post('/:id/like', authenticateToken, async (req, res) => {
     recipe.likes.push(userId);
     await recipe.save();
 
-    console.log('✅ Recipe liked');
+    // Create notification for the recipe creator
+    if (recipe.userId.toString() !== userId) {
+      const liker = await User.findById(userId);
+      
+      await createNotification({
+        type: 'like',
+        fromUserId: userId,
+        toUserId: recipe.userId,
+        recipeId: recipe._id,
+        message: `${liker?.fullName || 'Someone'} liked your recipe "${recipe.title}"`,
+        fromUser: {
+          name: liker?.fullName || 'Someone',
+          avatar: liker?.avatar || null
+        }
+      });
+      
+      console.log('Like notification created');
+    }
+
+    console.log('Recipe liked');
 
     res.json({ 
       message: 'Recipe liked successfully', 
@@ -278,7 +298,7 @@ router.post('/:id/like', authenticateToken, async (req, res) => {
   }
 });
 
-// ✅ UNLIKE RECIPE
+// UNLIKE RECIPE
 router.delete('/:id/like', authenticateToken, async (req, res) => {
   try {
     if (!isMongoConnected()) {
@@ -297,7 +317,7 @@ router.delete('/:id/like', authenticateToken, async (req, res) => {
     recipe.likes = recipe.likes.filter(id => id.toString() !== userId);
     await recipe.save();
 
-    console.log('✅ Recipe unliked');
+    console.log('Recipe unliked');
 
     res.json({ 
       message: 'Like removed successfully', 
@@ -310,7 +330,7 @@ router.delete('/:id/like', authenticateToken, async (req, res) => {
   }
 });
 
-// ✅ ADD COMMENT
+// ADD COMMENT
 router.post('/:id/comments', authenticateToken, async (req, res) => {
   try {
     if (!isMongoConnected()) {
@@ -325,10 +345,14 @@ router.post('/:id/comments', authenticateToken, async (req, res) => {
     const recipe = await Recipe.findById(req.params.id);
     if (!recipe) return res.status(404).json({ message: 'Recipe not found' });
 
+    const userId = req.user._id.toString();
+    const userName = req.user.fullName;
+    const userAvatar = req.user.avatar || null;
+
     const comment = {
-      userId: req.user._id.toString(),
-      userName: req.user.fullName,
-      userAvatar: req.user.avatar || null,
+      userId: userId,
+      userName: userName,
+      userAvatar: userAvatar,
       text: text.trim(),
       createdAt: new Date()
     };
@@ -339,7 +363,25 @@ router.post('/:id/comments', authenticateToken, async (req, res) => {
 
     const savedComment = recipe.comments[recipe.comments.length - 1];
 
-    console.log('✅ Comment added');
+    console.log('Comment added');
+
+    // Create notification for the recipe creator
+    if (recipe.userId.toString() !== userId) {
+      await createNotification({
+        type: 'comment',
+        fromUserId: userId,
+        toUserId: recipe.userId,
+        recipeId: recipe._id,
+        commentId: savedComment._id,
+        message: `${userName} commented on your recipe "${recipe.title}"`,
+        fromUser: {
+          name: userName,
+          avatar: userAvatar
+        }
+      });
+      
+      console.log('Comment notification created');
+    }
 
     res.status(201).json({
       message: 'Comment added successfully',
@@ -358,7 +400,7 @@ router.post('/:id/comments', authenticateToken, async (req, res) => {
   }
 });
 
-// ✅ DELETE COMMENT
+// DELETE COMMENT
 router.delete('/:id/comments/:commentId', authenticateToken, async (req, res) => {
   try {
     if (!isMongoConnected()) {
@@ -378,7 +420,7 @@ router.delete('/:id/comments/:commentId', authenticateToken, async (req, res) =>
     recipe.comments.pull({ _id: req.params.commentId });
     await recipe.save();
 
-    console.log('✅ Comment deleted');
+    console.log('Comment deleted');
 
     res.json({ 
       message: 'Comment deleted successfully',
