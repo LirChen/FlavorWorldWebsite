@@ -166,10 +166,10 @@ const PostModalScreen = () => {
         <div className="modal-container" onClick={(e) => e.stopPropagation()}>
           {/* Header */}
           <div className="modal-header">
-            <h2>{post.title || 'Recipe'}</h2>
             <button className="close-icon-btn" onClick={() => navigate(-1)}>
               <X size={28} />
             </button>
+            <h2>{post.title || 'Recipe'}</h2>
           </div>
 
           {/* Tabs */}
