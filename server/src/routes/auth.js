@@ -1,6 +1,6 @@
 // server/src/routes/auth.js
 import express from 'express';
-import bcrypt from 'bcryptjs';
+import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import crypto from 'crypto';
@@ -11,11 +11,15 @@ const resetCodes = new Map();
 
 router.post('/register', async (req, res) => {
   try {
-    const { fullName, email, password, confirmPassword } = req.body;
+    let { fullName, email, password, confirmPassword } = req.body;
 
     if (!fullName || !email || !password || !confirmPassword) {
       return res.status(400).json({ message: 'All fields are required' });
     }
+
+    email = email.toLowerCase().trim();
+    password = password.trim();
+    confirmPassword = confirmPassword.trim();
 
     if (password !== confirmPassword) {
       return res.status(400).json({ message: 'Passwords do not match' });
@@ -30,7 +34,7 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ message: 'User already exists with this email' });
     }
 
-    const saltRounds = 12;
+    const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
     const user = new User({
@@ -65,11 +69,14 @@ router.post('/register', async (req, res) => {
 
 router.post('/login', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    let { email, password } = req.body;
 
     if (!email || !password) {
       return res.status(400).json({ message: 'Email and password are required' });
     }
+
+    email = email.toLowerCase().trim();
+    password = password.trim(); 
 
     const user = await User.findOne({ email: email.toLowerCase().trim() });
     if (!user) {
@@ -86,7 +93,7 @@ router.post('/login', async (req, res) => {
       if (password === user.password) {
         isPasswordValid = true;
 
-        const saltRounds = 12;
+        const saltRounds = 10;
         const hashedPassword = await bcrypt.hash(password, saltRounds);
         user.password = hashedPassword;
         await user.save();

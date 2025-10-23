@@ -26,6 +26,7 @@ import PostComponent from '../../components/common/PostComponent';
 import CreatePostComponent from '../../components/common/CreatePostComponent';
 import SharePostComponent from '../../components/common/SharePostComponent';
 import UserAvatar from '../../components/common/UserAvatar';
+import { useNotifications } from '../../contexts/NotificationContext';
 
 const FLAVORWORLD_COLORS = {
   primary: '#F5A623',
@@ -68,6 +69,7 @@ const FEED_TYPES = [
 const HomeScreen = () => {
   const navigate = useNavigate();
   const { logout, currentUser, isLoading: authLoading } = useAuth();
+  const { unreadCount: unreadNotificationsCount } = useNotifications();
   
   const [posts, setPosts] = useState([]);
   const [filteredPosts, setFilteredPosts] = useState([]);
@@ -78,7 +80,6 @@ const HomeScreen = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [unreadChatCount, setUnreadChatCount] = useState(0);
-  const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
   const [feedType, setFeedType] = useState('personalized');
   
   const [selectedCategory, setSelectedCategory] = useState('all');

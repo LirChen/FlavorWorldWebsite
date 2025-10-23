@@ -417,23 +417,23 @@ router.post('/:groupId/posts/:postId/like', async (req, res) => {
     post.likes.push(userId);
     await post.save();
 
-    if (post.userId !== userId) {
+    if (post.userId.toString() !== userId) {
       const liker = await User.findById(userId);
+      
       await createNotification({
         type: 'like',
         fromUserId: userId,
         toUserId: post.userId,
-        message: `${liker?.fullName || 'Someone'} liked your recipe "${post.title}" in ${group.name}`,
         postId: post._id,
-        postTitle: post.title,
-        postImage: post.image,
-        groupId: group._id,
-        groupName: group.name,
+        groupId: groupId,
+        message: `${liker?.fullName || 'Someone'} liked your post in the group`,
         fromUser: {
-          name: liker?.fullName || 'Unknown User',
+          name: liker?.fullName || 'Someone',
           avatar: liker?.avatar || null
         }
       });
+      
+      console.log('Group post like notification created');
     }
 
     console.log('Group post liked successfully');
@@ -444,6 +444,7 @@ router.post('/:groupId/posts/:postId/like', async (req, res) => {
     });
 
   } catch (error) {
+    console.error('Error liking group post:', error);
     res.status(500).json({ message: 'Failed to like post' });
   }
 });
@@ -451,7 +452,7 @@ router.post('/:groupId/posts/:postId/like', async (req, res) => {
 // UNLIKE GROUP POST
 router.delete('/:groupId/posts/:postId/like', async (req, res) => {
   try {
-    console.log(' Unliking group post...');
+    console.log('Unliking group post...');
     
     if (!isMongoConnected()) {
       return res.status(503).json({ message: 'Database not available' });
@@ -502,6 +503,7 @@ router.delete('/:groupId/posts/:postId/like', async (req, res) => {
     });
 
   } catch (error) {
+    console.error('Error unliking group post:', error);
     res.status(500).json({ message: 'Failed to unlike post' });
   }
 });
@@ -550,11 +552,12 @@ router.post('/:groupId/posts/:postId/comments', async (req, res) => {
     }
 
     const user = await User.findById(userId);
+    const userAvatar = user?.avatar || null; 
 
     const newComment = {
       userId: userId,
       userName: userName || user?.fullName || 'Anonymous User',
-      userAvatar: user?.avatar || null,
+      userAvatar: userAvatar,
       text: text.trim(),
       createdAt: new Date()
     };
@@ -563,24 +566,26 @@ router.post('/:groupId/posts/:postId/comments', async (req, res) => {
     post.comments.push(newComment);
     await post.save();
 
-    if (post.userId !== userId) {
+    const savedComment = post.comments[post.comments.length - 1];
+
+    if (post.userId.toString() !== userId) {
       await createNotification({
         type: 'comment',
         fromUserId: userId,
         toUserId: post.userId,
-        message: `${user?.fullName || 'Someone'} commented on your recipe "${post.title}" in ${group.name}`,
         postId: post._id,
-        postTitle: post.title,
-        postImage: post.image,
-        groupId: group._id,
-        groupName: group.name,
+        groupId: groupId,
+        commentId: savedComment._id,
+        message: `${userName || user?.fullName || 'Someone'} commented on your post in the group`,
         fromUser: {
-          name: user?.fullName || 'Unknown User',
-          avatar: user?.avatar || null
+          name: userName || user?.fullName || 'Someone',
+          avatar: userAvatar
         }
       });
+      
+      console.log('Group post comment notification created');
     }
-
+    
     console.log('Comment added to group post successfully');
     res.status(201).json({
       success: true,
@@ -593,6 +598,7 @@ router.post('/:groupId/posts/:postId/comments', async (req, res) => {
     });
 
   } catch (error) {
+    console.error('Error adding comment to group post:', error);
     res.status(500).json({ message: 'Failed to add comment' });
   }
 });

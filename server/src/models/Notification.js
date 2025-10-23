@@ -9,6 +9,8 @@ const NotificationSchema = new mongoose.Schema({
   fromUserId: { type: String, required: true },
   toUserId: { type: String, required: true },
   message: { type: String, required: true },
+  recipeId: { type: String },
+  commentId: { type: String },
   postId: { type: String },
   postTitle: { type: String },
   postImage: { type: String },
