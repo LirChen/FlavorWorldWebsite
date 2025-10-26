@@ -594,6 +594,13 @@
   gap: 12px;
 }
 
+.no-suggestions {
+  padding: 20px;
+  text-align: center;
+  color: var(--text-light);
+  font-size: 14px;
+}
+
 .trending-item {
   display: flex;
   align-items: center;
@@ -628,10 +635,12 @@
   padding: 10px;
   border-radius: 12px;
   transition: all 0.3s;
+  cursor: pointer;
 }
 
 .suggestion-item:hover {
-  background: rgba(245, 166, 35, 0.05);
+  background: rgba(245, 166, 35, 0.1);
+  transform: translateX(4px);
 }
 
 .suggestion-info {
