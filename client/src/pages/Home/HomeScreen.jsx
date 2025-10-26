@@ -83,6 +83,7 @@ const HomeScreen = () => {
   const [unreadChatCount, setUnreadChatCount] = useState(0);
   const [feedType, setFeedType] = useState('personalized');
   const [suggestedUsers, setSuggestedUsers] = useState([]);
+  const [trendingRecipes, setTrendingRecipes] = useState([]);
   
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedMeatType, setSelectedMeatType] = useState('all');
@@ -230,6 +231,17 @@ const HomeScreen = () => {
     }
   }, []);
 
+  const loadTrendingRecipes = useCallback(async () => {
+    try {
+      const result = await recipeService.getTrendingRecipes();
+      if (result.success) {
+        setTrendingRecipes(result.data);
+      }
+    } catch (error) {
+      console.error('Load trending recipes error:', error);
+    }
+  }, []);
+
   const initializeChatService = useCallback(async () => {
     const userId = currentUser?.id || currentUser?._id;
     if (userId) {
@@ -254,8 +266,9 @@ const HomeScreen = () => {
       console.log('Initializing chat service...');
       initializeChatService();
       loadSuggestedUsers();
+      loadTrendingRecipes();
     }
-  }, [currentUser?.id, currentUser?._id, initializeChatService, loadSuggestedUsers]);
+  }, [currentUser?.id, currentUser?._id, initializeChatService, loadSuggestedUsers, loadTrendingRecipes]);
 
   const handleRefreshData = useCallback(async () => {
     setRefreshing(true);
@@ -595,18 +608,26 @@ const HomeScreen = () => {
           <div className="sidebar-card">
             <h3>Trending Recipes</h3>
             <div className="trending-list">
-              <div className="trending-item">
-                <span className="trend-number">1</span>
-                <span className="trend-name">Pasta Carbonara</span>
-              </div>
-              <div className="trending-item">
-                <span className="trend-number">2</span>
-                <span className="trend-name">Sushi Rolls</span>
-              </div>
-              <div className="trending-item">
-                <span className="trend-number">3</span>
-                <span className="trend-name">Chocolate Cake</span>
-              </div>
+              {trendingRecipes.length === 0 ? (
+                <div className="no-suggestions">
+                  <p>No trending recipes yet</p>
+                </div>
+              ) : (
+                trendingRecipes.map((recipe, index) => (
+                  <div 
+                    key={recipe._id} 
+                    className="trending-item"
+                    onClick={() => navigate(`/post/${recipe._id}`)}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <span className="trend-number">{index + 1}</span>
+                    <span className="trend-name">{recipe.title}</span>
+                    <span className="trend-likes">
+                      <Heart size={14} /> {recipe.likesCount}
+                    </span>
+                  </div>
+                ))
+              )}
             </div>
           </div>
 

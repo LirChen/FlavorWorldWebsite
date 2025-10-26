@@ -159,6 +159,41 @@ router.post('/', authenticateToken, upload.any(), async (req, res) => {
   }
 });
 
+// GET TRENDING RECIPES (Top 3 most liked)
+router.get('/trending/top', async (req, res) => {
+  try {
+    if (!isMongoConnected()) {
+      return res.status(503).json({ message: 'Database not available' });
+    }
+
+    const trendingRecipes = await Recipe.aggregate([
+      {
+        $addFields: {
+          likesCount: { $size: { $ifNull: ['$likes', []] } }
+        }
+      },
+      {
+        $sort: { likesCount: -1 }
+      },
+      {
+        $limit: 3
+      },
+      {
+        $project: {
+          title: 1,
+          likesCount: 1,
+          _id: 1
+        }
+      }
+    ]);
+
+    res.json({ success: true, data: trendingRecipes });
+  } catch (error) {
+    console.error('Error fetching trending recipes:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
 // GET ALL RECIPES
 router.get('/', async (req, res) => {
   try {
