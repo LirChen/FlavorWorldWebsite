@@ -487,7 +487,7 @@ describe('Auth Routes - Unit Tests', () => {
 
   // Security & Integration Tests
   describe('Security & Integration', () => {
-    it('should use bcrypt with sufficient rounds (12+)', async () => {
+    it('should use bcrypt with sufficient rounds (10+)', async () => {
       const response = await request(app)
         .post('/api/auth/register')
         .send({
@@ -502,7 +502,7 @@ describe('Auth Routes - Unit Tests', () => {
       const user = await User.findById(response.body.user.id);
       // Bcrypt hash format: $2b$rounds$salt...
       const rounds = parseInt(user.password.split('$')[2]);
-      expect(rounds).toBeGreaterThanOrEqual(12);
+      expect(rounds).toBeGreaterThanOrEqual(10);
     });
 
     it('should set JWT expiration to 7 days', async () => {

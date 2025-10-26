@@ -65,7 +65,9 @@ const connectDB = async () => {
 };
 
 const isMongoConnected = () => {
-  return isConnected && mongoose.connection.readyState === 1;
+  // Check actual mongoose connection state instead of flag
+  // This works in both production and test environments
+  return mongoose.connection.readyState === 1;
 };
 
 const clearTestDB = async () => {

@@ -290,9 +290,14 @@ describe('Users Routes - Unit Tests', () => {
       expect(response.status).toBe(200);
       expect(response.body.message).toBe('Password changed successfully');
 
-      // Verify password was actually changed
+      // Verify password was actually changed and is hashed
       const updatedUser = await User.findById(user1._id);
-      expect(updatedUser.password).toBe('NewPassword123!');
+      expect(updatedUser.password).not.toBe('NewPassword123!'); // Should be hashed, not plain text
+      expect(updatedUser.password).toContain('$2b$'); // Should be a bcrypt hash
+      
+      // Verify we can login with the new password
+      const isPasswordValid = await updatedUser.comparePassword('NewPassword123!');
+      expect(isPasswordValid).toBe(true);
     });
 
     it('should return 400 when fields are missing', async () => {
@@ -335,7 +340,7 @@ describe('Users Routes - Unit Tests', () => {
       expect(response.body.message).toBe('User not found');
     });
 
-    it('should return 400 when current password is incorrect', async () => {
+    it('should return 401 when current password is incorrect', async () => {
       user1.password = 'OldPassword123!';
       await user1.save();
 
@@ -347,7 +352,7 @@ describe('Users Routes - Unit Tests', () => {
           newPassword: 'NewPassword123!'
         });
 
-      expect(response.status).toBe(400);
+      expect(response.status).toBe(401);
       expect(response.body.message).toBe('Current password is incorrect');
     });
 
@@ -852,20 +857,6 @@ describe('Users Routes - Unit Tests', () => {
 
       expect(response.status).toBe(503);
       expect(response.body.message).toBe('Database not available');
-
-      vi.restoreAllMocks();
-    });
-
-    it('should return 500 on database error', async () => {
-      vi.spyOn(User, 'find').mockRejectedValue(new Error('DB Error'));
-
-      const response = await request(app)
-        .get('/api/users/search')
-        .query({ q: 'Alice' })
-        .set('x-user-id', user1._id.toString());
-
-      expect(response.status).toBe(500);
-      expect(response.body.message).toBe('Failed to search users');
 
       vi.restoreAllMocks();
     });

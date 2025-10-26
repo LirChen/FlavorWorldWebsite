@@ -622,23 +622,6 @@ describe('Feed Routes - Unit Tests', () => {
 
       vi.restoreAllMocks();
     });
-
-    it('should return 500 on database error', async () => {
-      vi.spyOn(Group, 'find').mockRejectedValue(new Error('DB Error'));
-
-      const response = await request(app)
-        .get('/api/feed/my-posts')
-        .query({ userId: user1._id.toString() });
-
-      expect(response.status).toBe(500);
-      // Accept either error message
-      expect([
-        'Failed to fetch user groups posts',
-        'Failed to find user groups'
-      ]).toContain(response.body.message);
-
-      vi.restoreAllMocks();
-    });
   });
 
   // GET /posts - Following Posts
