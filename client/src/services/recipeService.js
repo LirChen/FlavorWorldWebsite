@@ -694,6 +694,17 @@ getSavedRecipes: async () => {
 
       img.src = URL.createObjectURL(file);
     });
+  },
+
+  // Get trending recipes (top 3 most liked)
+  getTrendingRecipes: async () => {
+    try {
+      const response = await api.get('/recipes/trending/top');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching trending recipes:', error);
+      return { success: false, data: [] };
+    }
   }
   
 };
