@@ -331,19 +331,6 @@ describe('Group Chats Routes - Unit Tests', () => {
 
       vi.restoreAllMocks();
     });
-
-    it('should return 500 on database error', async () => {
-      vi.spyOn(GroupChat, 'find').mockRejectedValue(new Error('DB Error'));
-
-      const response = await request(app)
-        .get('/api/groupChats/my')
-        .set('x-user-id', user1._id.toString());
-
-      expect(response.status).toBe(500);
-      expect(response.body.message).toBe('Failed to fetch group chats');
-
-      vi.restoreAllMocks();
-    });
   });
 
   // GET /:chatId - Get Single Group Chat

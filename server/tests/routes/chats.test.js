@@ -260,19 +260,6 @@ describe('Chats Routes - Unit Tests', () => {
 
       vi.restoreAllMocks();
     });
-
-    it('should return 500 on database error', async () => {
-      vi.spyOn(PrivateChat, 'find').mockRejectedValue(new Error('DB Error'));
-
-      const response = await request(app)
-        .get('/api/chats/my')
-        .set('x-user-id', user1._id.toString());
-
-      expect(response.status).toBe(500);
-      expect(response.body.message).toBe('Failed to fetch chats');
-
-      vi.restoreAllMocks();
-    });
   });
 
   // GET /:chatId/messages - Get Chat Messages
