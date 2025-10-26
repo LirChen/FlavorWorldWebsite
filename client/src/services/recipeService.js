@@ -144,6 +144,11 @@ export const recipeService = {
         formData.append('userAvatar', recipeData.userAvatar || '');
         formData.append('mediaType', detectedMediaType);
 
+        // Add video duration if it's a video
+        if (detectedMediaType === 'video' && recipeData.videoDuration) {
+          formData.append('videoDuration', recipeData.videoDuration.toString());
+        }
+
         // Add media according to type
         if (detectedMediaType === 'video') {
           formData.append('video', mediaFile);
@@ -304,6 +309,11 @@ export const recipeService = {
       formData.append('servings', updateData.servings?.toString() || '1');
       formData.append('userId', updateData.userId || '');
       formData.append('mediaType', updateData.mediaType || 'none');
+
+      // Add video duration if video
+      if (updateData.videoDuration && (updateData.mediaType === 'video' || mediaType === 'video')) {
+        formData.append('videoDuration', updateData.videoDuration.toString());
+      }
 
       // Handle new media
       if (mediaFile instanceof File) {

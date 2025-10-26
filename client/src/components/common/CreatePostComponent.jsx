@@ -54,6 +54,7 @@ const CreatePostComponent = ({
   const [servings, setServings] = useState('');
   const [media, setMedia] = useState(null);
   const [mediaType, setMediaType] = useState('none');
+  const [videoDuration, setVideoDuration] = useState(0);
 
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
@@ -89,12 +90,55 @@ const CreatePostComponent = ({
       input.type = 'file';
       input.accept = type === 'video' ? 'video/*' : 'image/*';
       
-      input.onchange = (event) => {
+      input.onchange = async (event) => {
         const file = event.target.files[0];
         if (file) {
-          const url = URL.createObjectURL(file);
-          setMedia({ uri: url, file: file });
-          setMediaType(type);
+          // Validate video duration
+          if (type === 'video') {
+            // Check file size first (max 100MB)
+            const maxSize = 100 * 1024 * 1024; // 100MB
+            if (file.size > maxSize) {
+              alert('Video file is too large. Maximum size is 100MB.');
+              return;
+            }
+
+            // Create video element to check duration
+            const video = document.createElement('video');
+            video.preload = 'metadata';
+            
+            video.onloadedmetadata = function() {
+              window.URL.revokeObjectURL(video.src);
+              const duration = video.duration;
+              
+              // Check if video is longer than 60 seconds
+              if (duration > 60) {
+                alert('Video is too long. Maximum duration is 1 minute (60 seconds).');
+                return;
+              }
+              
+              // Check file size (max 10MB to stay under MongoDB limit after base64 encoding)
+              const maxSizeInMB = 10;
+              const fileSizeInMB = file.size / (1024 * 1024);
+              
+              if (fileSizeInMB > maxSizeInMB) {
+                alert(`Video file is too large (${fileSizeInMB.toFixed(1)}MB). Maximum size is ${maxSizeInMB}MB.`);
+                return;
+              }
+              
+              setVideoDuration(Math.round(duration));
+              const url = URL.createObjectURL(file);
+              setMedia({ uri: url, file: file });
+              setMediaType(type);
+            };
+            
+            video.src = URL.createObjectURL(file);
+          } else {
+            // For images, just set directly
+            const url = URL.createObjectURL(file);
+            setMedia({ uri: url, file: file });
+            setMediaType(type);
+            setVideoDuration(0);
+          }
         }
       };
       
@@ -128,7 +172,8 @@ const CreatePostComponent = ({
         userId: currentUser?.id || currentUser?._id,
         userName: currentUser?.fullName || currentUser?.name || 'Anonymous',
         userAvatar: currentUser?.avatar || currentUser?.userAvatar || null,
-        mediaType: mediaType
+        mediaType: mediaType,
+        videoDuration: videoDuration
       };
 
       let result;
@@ -165,6 +210,7 @@ const CreatePostComponent = ({
         setServings('');
         setMedia(null);
         setMediaType('none');
+        setVideoDuration(0);
         setErrors({});
         
         onPostCreated?.(result.data);
@@ -407,7 +453,7 @@ const CreatePostComponent = ({
             className={`media-button ${mediaType === 'video' ? 'active' : ''}`}
           >
             <Video size={20} />
-            <span>Video</span>
+            <span>Video (max 1 min, 10MB)</span>
           </button>
         </div>
 
@@ -416,13 +462,21 @@ const CreatePostComponent = ({
             {mediaType === 'image' ? (
               <img src={media.uri} alt="Preview" />
             ) : (
-              <video src={media.uri} controls />
+              <div className="video-preview-container">
+                <video src={media.uri} controls />
+                {videoDuration > 0 && (
+                  <div className="video-duration-badge">
+                    {videoDuration}s / 60s
+                  </div>
+                )}
+              </div>
             )}
             <button
               type="button"
               onClick={() => {
                 setMedia(null);
                 setMediaType('none');
+                setVideoDuration(0);
               }}
               className="remove-media"
             >
