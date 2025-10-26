@@ -262,18 +262,41 @@ const SearchScreen = () => {
                   <p>No results found for "{searchQuery}". Try different keywords.</p>
                 </div>
               ) : (
-                <div className="results-list">
+                <div className={`results-list ${
+                  (selectedTab === 'posts' || (selectedTab === 'all' && getFilteredResults().length > 0 && getFilteredResults().every(item => item.type === 'post'))) 
+                    ? 'posts-grid' 
+                    : (selectedTab === 'groups' || (selectedTab === 'all' && getFilteredResults().length > 0 && getFilteredResults().every(item => item.type === 'group'))) 
+                      ? 'groups-grid' 
+                      : ''
+                }`}>
                   {getFilteredResults().map((item, index) => {
                     const itemType = selectedTab === 'all' ? item.type : selectedTab.slice(0, -1);
                     
                     if (itemType === 'post') {
                       return (
-                        <div key={item._id || index} className="result-post">
-                          <PostComponent
-                            post={item}
-                            onNavigate={navigate}
-                            onRefreshData={() => {}}
-                          />
+                        <div 
+                          key={item._id || index} 
+                          className="result-post-card"
+                          onClick={() => navigate(`/post/${item._id}`)}
+                        >
+                          {item.image ? (
+                            <img 
+                              src={item.image} 
+                              alt={item.title}
+                              className="result-post-image"
+                            />
+                          ) : (
+                            <div className="result-post-placeholder">
+                              🍳
+                            </div>
+                          )}
+                          <div className="result-post-overlay">
+                            <h4 className="result-post-title">{item.title}</h4>
+                            <div className="result-post-meta">
+                              <span>❤️ {item.likes?.length || 0}</span>
+                              <span>💬 {item.comments?.length || 0}</span>
+                            </div>
+                          </div>
                         </div>
                       );
                     }
@@ -307,12 +330,12 @@ const SearchScreen = () => {
                           className="result-group"
                           onClick={() => navigate(`/group/${item._id}`)}
                         >
-                          <div className="group-image">
+                          <div className="group-image-container">
                             {item.image ? (
-                              <img src={item.image} alt={item.name} />
+                              <img src={item.image} alt={item.name} className="group-image" />
                             ) : (
                               <div className="group-placeholder">
-                                <Users size={24} />
+                                <Users size={48} />
                               </div>
                             )}
                           </div>
@@ -321,19 +344,17 @@ const SearchScreen = () => {
                             <h4>{item.name}</h4>
                             <p>{item.description || 'No description'}</p>
                             <div className="group-meta">
-                              <span>{item.membersCount} members</span>
+                              <span>👥 {item.membersCount || 0} members</span>
                               <span>•</span>
                               <span>{item.category}</span>
                               {item.isPrivate && (
                                 <>
                                   <span>•</span>
-                                  <span>Private</span>
+                                  <span>🔒 Private</span>
                                 </>
                               )}
                             </div>
                           </div>
-                          
-                          <ChevronRight size={20} />
                         </div>
                       );
                     }

@@ -214,6 +214,7 @@ const NotificationsScreen = () => {
   return (
     <div className="notifications-screen">
       <header className="notifications-header">
+        <div className="notifications-header-content">
         <button className="back-btn" onClick={() => navigate(-1)}>
           <ArrowLeft size={24} />
         </button>
@@ -229,6 +230,7 @@ const NotificationsScreen = () => {
         ) : (
           <div className="header-placeholder" />
         )}
+        </div>
       </header>
 
       <div className="notifications-content">
