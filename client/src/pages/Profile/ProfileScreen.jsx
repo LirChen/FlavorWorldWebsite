@@ -338,6 +338,28 @@ const ProfileScreen = () => {
     window.location.reload();
   };
 
+  const handlePostDelete = async (postId) => {
+    try {
+      const postToDelete = userPosts.find(p => (p._id || p.id) === postId);
+      if (!postToDelete) return;
+      
+      const result = await recipeService.deleteRecipe(postId, {
+        groupId: postToDelete.groupId,
+        userId: currentUser?.id || currentUser?._id,
+        isGroupPost: !!postToDelete.groupId,
+        authorId: postToDelete.userId
+      });
+      
+      if (result.success) {
+        handleRefreshData();
+        alert('Recipe deleted successfully');
+      }
+    } catch (error) {
+      console.error('Delete error:', error);
+      alert('Failed to delete recipe. Please try again.');
+    }
+  };
+
   const getFilteredPosts = () => {
     switch (selectedTab) {
       case 'personal':
@@ -575,6 +597,7 @@ const ProfileScreen = () => {
                   post={post}
                   navigation={navigate}
                   onRefreshData={handleRefreshData}
+                  onDelete={handlePostDelete}
                 />
               </div>
             ))
