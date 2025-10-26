@@ -67,11 +67,14 @@ router.post('/', authenticateToken, upload.any(), async (req, res) => {
       userName: req.user.fullName,
       userAvatar: req.user.avatar || null,
       likes: [],
-      comments: []
+      comments: [],
+      mediaType: req.body.mediaType || 'none'
     };
 
     // ✅ Handle image/video upload
     let mediaData = null;
+    let isVideo = false;
+    
     if (req.files && req.files.length > 0) {
       const mediaFile = req.files.find(file => 
         file.fieldname === 'image' || 
@@ -81,19 +84,53 @@ router.post('/', authenticateToken, upload.any(), async (req, res) => {
       );
       
       if (mediaFile) {
+        isVideo = mediaFile.mimetype.startsWith('video/');
+        
+        // Validate video size (max 100MB)
+        if (isVideo && mediaFile.size > 100 * 1024 * 1024) {
+          return res.status(400).json({ 
+            message: 'Video file too large. Maximum size is 100MB.' 
+          });
+        }
+        
         const base64Data = mediaFile.buffer.toString('base64');
         mediaData = `data:${mediaFile.mimetype};base64,${base64Data}`;
-        console.log('✅ Media converted to base64:', mediaFile.mimetype);
+        console.log(`✅ ${isVideo ? 'Video' : 'Image'} converted to base64:`, mediaFile.mimetype);
       }
     }
 
     // Check if media already in body (base64)
     if (!mediaData && req.body.image) {
       mediaData = req.body.image;
+      isVideo = false;
+    }
+    if (!mediaData && req.body.video) {
+      mediaData = req.body.video;
+      isVideo = true;
     }
 
     if (mediaData) {
-      recipeData.image = mediaData;
+      if (isVideo) {
+        // Check if base64 video exceeds MongoDB's 16MB limit
+        const videoSizeInBytes = Buffer.byteLength(mediaData, 'utf8');
+        const maxMongoDocSize = 15 * 1024 * 1024; // 15MB to be safe (MongoDB limit is 16MB)
+        
+        if (videoSizeInBytes > maxMongoDocSize) {
+          return res.status(400).json({ 
+            message: 'Video file too large after encoding. Please use a smaller video (max ~10MB original size for 1 minute videos).' 
+          });
+        }
+        
+        recipeData.video = mediaData;
+        recipeData.mediaType = 'video';
+        // Video duration validation happens on client side
+        if (req.body.videoDuration) {
+          recipeData.videoDuration = parseInt(req.body.videoDuration);
+        }
+      } else {
+        recipeData.image = mediaData;
+        recipeData.mediaType = 'image';
+      }
     }
 
     const recipe = new Recipe(recipeData);
@@ -109,7 +146,16 @@ router.post('/', authenticateToken, upload.any(), async (req, res) => {
 
   } catch (error) {
     console.error('❌ Error creating recipe:', error);
-    res.status(500).json({ message: 'Server error', error: error.message });
+    console.error('❌ Error name:', error.name);
+    console.error('❌ Error message:', error.message);
+    if (error.errors) {
+      console.error('❌ Validation errors:', error.errors);
+    }
+    res.status(500).json({ 
+      message: 'Server error', 
+      error: error.message,
+      errorType: error.name 
+    });
   }
 });
 
@@ -181,6 +227,9 @@ router.put('/:id', authenticateToken, upload.any(), async (req, res) => {
     };
 
     // ✅ Handle media update
+    let mediaData = null;
+    let isVideo = false;
+    
     if (req.files && req.files.length > 0) {
       const mediaFile = req.files.find(file => 
         file.fieldname === 'image' || 
@@ -190,15 +239,65 @@ router.put('/:id', authenticateToken, upload.any(), async (req, res) => {
       );
       
       if (mediaFile) {
+        isVideo = mediaFile.mimetype.startsWith('video/');
+        
+        // Validate video size (max 100MB)
+        if (isVideo && mediaFile.size > 100 * 1024 * 1024) {
+          return res.status(400).json({ 
+            message: 'Video file too large. Maximum size is 100MB.' 
+          });
+        }
+        
         const base64Data = mediaFile.buffer.toString('base64');
-        updateData.image = `data:${mediaFile.mimetype};base64,${base64Data}`;
-        console.log('✅ Media updated to base64');
+        mediaData = `data:${mediaFile.mimetype};base64,${base64Data}`;
+        console.log(`✅ ${isVideo ? 'Video' : 'Image'} updated to base64`);
+      }
+    }
+
+    // Handle media update
+    if (mediaData) {
+      if (isVideo) {
+        // Check if base64 video exceeds MongoDB's 16MB limit
+        const videoSizeInBytes = Buffer.byteLength(mediaData, 'utf8');
+        const maxMongoDocSize = 15 * 1024 * 1024; // 15MB to be safe
+        
+        if (videoSizeInBytes > maxMongoDocSize) {
+          return res.status(400).json({ 
+            message: 'Video file too large after encoding. Please use a smaller video (max ~10MB original size).' 
+          });
+        }
+        
+        updateData.video = mediaData;
+        updateData.mediaType = 'video';
+        updateData.image = null; // Clear image if video
+        if (req.body.videoDuration) {
+          updateData.videoDuration = parseInt(req.body.videoDuration);
+        }
+      } else {
+        updateData.image = mediaData;
+        updateData.mediaType = 'image';
+        updateData.video = null; // Clear video if image
       }
     } else if (req.body.image) {
-      // Keep existing or use provided base64
+      // Keep existing or use provided base64 image
       updateData.image = req.body.image;
+      updateData.mediaType = 'image';
+    } else if (req.body.video) {
+      // Keep existing or use provided base64 video
+      updateData.video = req.body.video;
+      updateData.mediaType = 'video';
+      if (req.body.videoDuration) {
+        updateData.videoDuration = parseInt(req.body.videoDuration);
+      }
     } else if (req.body.existingImage) {
       updateData.image = req.body.existingImage;
+      updateData.mediaType = 'image';
+    } else if (req.body.existingVideo) {
+      updateData.video = req.body.existingVideo;
+      updateData.mediaType = 'video';
+      if (req.body.videoDuration) {
+        updateData.videoDuration = parseInt(req.body.videoDuration);
+      }
     }
 
     const updatedRecipe = await Recipe.findByIdAndUpdate(

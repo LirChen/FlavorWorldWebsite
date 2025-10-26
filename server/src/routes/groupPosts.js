@@ -83,22 +83,40 @@ router.post('/:groupId/posts', upload.any(), async (req, res) => {
       return res.status(400).json({ message: 'Recipe title is required' });
     }
 
-    let imageData = null;
+    let mediaData = null;
+    let isVideo = false;
+    
     if (req.files && req.files.length > 0) {
-      const imageFile = req.files.find(file => 
+      const mediaFile = req.files.find(file => 
         file.fieldname === 'image' || 
-        file.mimetype.startsWith('image/')
+        file.fieldname === 'video' ||
+        file.mimetype.startsWith('image/') ||
+        file.mimetype.startsWith('video/')
       );
       
-      if (imageFile) {
-        const base64Image = imageFile.buffer.toString('base64');
-        imageData = `data:${imageFile.mimetype};base64,${base64Image}`;
-        console.log('Group post image converted to base64');
+      if (mediaFile) {
+        isVideo = mediaFile.mimetype.startsWith('video/');
+        
+        // Validate video size (max 100MB)
+        if (isVideo && mediaFile.size > 100 * 1024 * 1024) {
+          return res.status(400).json({ 
+            message: 'Video file too large. Maximum size is 100MB.' 
+          });
+        }
+        
+        const base64Data = mediaFile.buffer.toString('base64');
+        mediaData = `data:${mediaFile.mimetype};base64,${base64Data}`;
+        console.log(`Group post ${isVideo ? 'video' : 'image'} converted to base64`);
       }
     }
 
-    if (!imageData && formData.image) {
-      imageData = formData.image;
+    if (!mediaData && formData.image) {
+      mediaData = formData.image;
+      isVideo = false;
+    }
+    if (!mediaData && formData.video) {
+      mediaData = formData.video;
+      isVideo = true;
     }
 
     const requireApproval = group.settings?.requireApproval ?? group.requireApproval ?? false;
@@ -119,13 +137,36 @@ router.post('/:groupId/posts', upload.any(), async (req, res) => {
       meatType: formData.meatType || 'Mixed',
       prepTime: parseInt(formData.prepTime) || 0,
       servings: parseInt(formData.servings) || 1,
-      image: imageData,
       userId: userId,
       groupId: req.params.groupId,
       likes: [],
       comments: [],
-      isApproved: autoApprove 
+      isApproved: autoApprove,
+      mediaType: formData.mediaType || 'none'
     };
+
+    if (mediaData) {
+      if (isVideo) {
+        // Check if base64 video exceeds MongoDB's 16MB limit
+        const videoSizeInBytes = Buffer.byteLength(mediaData, 'utf8');
+        const maxMongoDocSize = 15 * 1024 * 1024; // 15MB to be safe (MongoDB limit is 16MB)
+        
+        if (videoSizeInBytes > maxMongoDocSize) {
+          return res.status(400).json({ 
+            message: 'Video file too large after encoding. Please use a smaller video (max ~10MB original size for 1 minute videos).' 
+          });
+        }
+        
+        postData.video = mediaData;
+        postData.mediaType = 'video';
+        if (formData.videoDuration) {
+          postData.videoDuration = parseInt(formData.videoDuration);
+        }
+      } else {
+        postData.image = mediaData;
+        postData.mediaType = 'image';
+      }
+    }
 
     console.log(' Creating post with approval status:', {
       requireApproval,
@@ -162,7 +203,17 @@ router.post('/:groupId/posts', upload.any(), async (req, res) => {
     });
     
   } catch (error) {
-    res.status(500).json({ message: 'Failed to create group post' });
+    console.error('❌ Error creating group post:', error);
+    console.error('❌ Error name:', error.name);
+    console.error('❌ Error message:', error.message);
+    if (error.errors) {
+      console.error('❌ Validation errors:', error.errors);
+    }
+    res.status(500).json({ 
+      message: 'Failed to create group post',
+      error: error.message,
+      errorType: error.name
+    });
   }
 });
 
@@ -653,31 +704,77 @@ router.put('/:groupId/posts/:postId', upload.any(), async (req, res) => {
       servings: req.body.servings ? parseInt(req.body.servings) : post.servings
     };
 
-    let imageData = null;
+    let mediaData = null;
+    let isVideo = false;
+    
     if (req.files && req.files.length > 0) {
-      const imageFile = req.files.find(file => 
+      const mediaFile = req.files.find(file => 
         file.fieldname === 'image' || 
         file.fieldname === 'video' ||
         file.mimetype.startsWith('image/') ||
         file.mimetype.startsWith('video/')
       );
       
-      if (imageFile) {
-        const base64Image = imageFile.buffer.toString('base64');
-        imageData = `data:${imageFile.mimetype};base64,${base64Image}`;
-        console.log('Media updated to base64');
+      if (mediaFile) {
+        isVideo = mediaFile.mimetype.startsWith('video/');
+        
+        // Validate video size (max 100MB)
+        if (isVideo && mediaFile.size > 100 * 1024 * 1024) {
+          return res.status(400).json({ 
+            message: 'Video file too large. Maximum size is 100MB.' 
+          });
+        }
+        
+        const base64Data = mediaFile.buffer.toString('base64');
+        mediaData = `data:${mediaFile.mimetype};base64,${base64Data}`;
+        console.log(`${isVideo ? 'Video' : 'Image'} updated to base64`);
       }
     }
 
-    // Use new image if provided, otherwise check body
-    if (imageData) {
-      updateData.image = imageData;
+    // Handle media update
+    if (mediaData) {
+      if (isVideo) {
+        // Check if base64 video exceeds MongoDB's 16MB limit
+        const videoSizeInBytes = Buffer.byteLength(mediaData, 'utf8');
+        const maxMongoDocSize = 15 * 1024 * 1024; // 15MB to be safe
+        
+        if (videoSizeInBytes > maxMongoDocSize) {
+          return res.status(400).json({ 
+            message: 'Video file too large after encoding. Please use a smaller video (max ~10MB original size).' 
+          });
+        }
+        
+        updateData.video = mediaData;
+        updateData.mediaType = 'video';
+        updateData.image = null; // Clear image if video
+        if (req.body.videoDuration) {
+          updateData.videoDuration = parseInt(req.body.videoDuration);
+        }
+      } else {
+        updateData.image = mediaData;
+        updateData.mediaType = 'image';
+        updateData.video = null; // Clear video if image
+      }
     } else if (req.body.image) {
       updateData.image = req.body.image;
+      updateData.mediaType = 'image';
+    } else if (req.body.video) {
+      updateData.video = req.body.video;
+      updateData.mediaType = 'video';
+      if (req.body.videoDuration) {
+        updateData.videoDuration = parseInt(req.body.videoDuration);
+      }
     } else if (req.body.existingImage) {
       updateData.image = req.body.existingImage;
+      updateData.mediaType = 'image';
+    } else if (req.body.existingVideo) {
+      updateData.video = req.body.existingVideo;
+      updateData.mediaType = 'video';
+      if (req.body.videoDuration) {
+        updateData.videoDuration = parseInt(req.body.videoDuration);
+      }
     }
-    // If no image at all, keep the old one (don't update image field)
+    // If no media at all, keep the old one (don't update media fields)
 
     const updatedPost = await GroupPost.findByIdAndUpdate(
       postId,

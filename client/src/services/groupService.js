@@ -344,6 +344,11 @@ class GroupService {
       formData.append('servings', updateData.servings?.toString() || '1');
       formData.append('userId', updateData.userId);
 
+      // Add video duration if video
+      if (updateData.videoDuration && (updateData.mediaType === 'video' || mediaType === 'video')) {
+        formData.append('videoDuration', updateData.videoDuration.toString());
+      }
+
       if (mediaFile instanceof File) {
         const detectedType = mediaType || (mediaFile.type.startsWith('video/') ? 'video' : 'image');
         

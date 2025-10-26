@@ -54,6 +54,8 @@ const EditPostScreen = () => {
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [originalImage, setOriginalImage] = useState(null);
+  const [mediaType, setMediaType] = useState('none'); // 'none', 'image', 'video'
+  const [videoDuration, setVideoDuration] = useState(0);
   
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
@@ -90,6 +92,12 @@ const EditPostScreen = () => {
       if (postData.image) {
         setOriginalImage(postData.image);
         setImagePreview(postData.image);
+        setMediaType('image');
+      } else if (postData.video) {
+        setOriginalImage(postData.video);
+        setImagePreview(postData.video);
+        setMediaType('video');
+        setVideoDuration(postData.videoDuration || 0);
       }
     }
   }, [postData]);
@@ -122,8 +130,44 @@ const EditPostScreen = () => {
   const handleImageSelect = (e) => {
     const file = e.target.files[0];
     if (file) {
-      setImageFile(file);
-      setImagePreview(URL.createObjectURL(file));
+      const isVideo = file.type.startsWith('video/');
+      
+      if (isVideo) {
+        // Validate video duration
+        const video = document.createElement('video');
+        video.preload = 'metadata';
+        
+        video.onloadedmetadata = function() {
+          window.URL.revokeObjectURL(video.src);
+          const duration = video.duration;
+          
+          if (duration > 60) {
+            alert('Video is too long. Maximum duration is 1 minute (60 seconds).');
+            return;
+          }
+          
+          // Check file size (max 10MB to stay under MongoDB limit after base64 encoding)
+          const maxSizeInMB = 10;
+          const fileSizeInMB = file.size / (1024 * 1024);
+          
+          if (fileSizeInMB > maxSizeInMB) {
+            alert(`Video file is too large (${fileSizeInMB.toFixed(1)}MB). Maximum size is ${maxSizeInMB}MB.`);
+            return;
+          }
+          
+          setVideoDuration(Math.round(duration));
+          setImageFile(file);
+          setImagePreview(URL.createObjectURL(file));
+          setMediaType('video');
+        };
+        
+        video.src = URL.createObjectURL(file);
+      } else {
+        setImageFile(file);
+        setImagePreview(URL.createObjectURL(file));
+        setMediaType('image');
+        setVideoDuration(0);
+      }
     }
   };
 
@@ -131,6 +175,8 @@ const EditPostScreen = () => {
     setImageFile(null);
     setImagePreview(null);
     setOriginalImage(null);
+    setMediaType('none');
+    setVideoDuration(0);
   };
 
   const handleSubmit = async (e) => {
@@ -161,10 +207,19 @@ const EditPostScreen = () => {
         prepTime: totalMinutes,
         servings: parseInt(servings) || 1,
         userId: currentUser?.id || currentUser?._id,
+        mediaType: mediaType,
       };
 
+      if (mediaType === 'video') {
+        updateData.videoDuration = videoDuration;
+      }
+
       if (!imageFile && originalImage) {
-        updateData.image = originalImage;
+        if (mediaType === 'video') {
+          updateData.video = originalImage;
+        } else {
+          updateData.image = originalImage;
+        }
       }
 
       console.log('Updating post:', postId);
@@ -379,20 +434,29 @@ const EditPostScreen = () => {
           {errors.instructions && <span className="error-message">{errors.instructions}</span>}
         </div>
 
-        {/* Image */}
+        {/* Image/Video */}
         <div className="form-group">
-          <label>Recipe Photo</label>
+          <label>Recipe Media</label>
           
           {imagePreview ? (
             <div className="image-preview">
-              <img src={imagePreview} alt="Preview" />
+              {mediaType === 'video' ? (
+                <div className="video-preview-container">
+                  <video src={imagePreview} controls />
+                  {videoDuration > 0 && (
+                    <div className="video-duration-badge">{videoDuration}s / 60s</div>
+                  )}
+                </div>
+              ) : (
+                <img src={imagePreview} alt="Preview" />
+              )}
               <div className="image-actions">
                 <label className="change-image-btn">
                   <Camera size={16} />
-                  <span>Change Photo</span>
+                  <span>Change {mediaType === 'video' ? 'Video' : 'Photo'}</span>
                   <input
                     type="file"
-                    accept="image/*"
+                    accept="image/*,video/*"
                     onChange={handleImageSelect}
                     style={{ display: 'none' }}
                   />
@@ -407,11 +471,11 @@ const EditPostScreen = () => {
           ) : (
             <label className="image-picker">
               <Camera size={40} />
-              <span>Add a photo</span>
-              <p>Make your recipe irresistible!</p>
+              <span>Add a photo or video</span>
+              <p>Videos up to 1 minute. Make it irresistible!</p>
               <input
                 type="file"
-                accept="image/*"
+                accept="image/*,video/*"
                 onChange={handleImageSelect}
                 style={{ display: 'none' }}
               />

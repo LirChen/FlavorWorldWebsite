@@ -405,22 +405,27 @@ const PostComponent = ({
           <span className="meta-tag">{safePost.meatType}</span>
         </div>
 
-        {safePost.image ? (
-          <div className="post-image-container">
-            <img src={safePost.image} alt={safePost.title} />
-          </div>
-        ) : (
-          <div className="post-image-placeholder">
-            🍽️
-          </div>
-        )}
-
-        {safePost.video && !safePost.image && (
+        {/* Show video if mediaType is video or video field exists */}
+        {(safePost.mediaType === 'video' || safePost.video) && (
           <div className="post-video-container" onClick={(e) => {
             e.stopPropagation();
             setShowFullRecipe(true);
           }}>
             <video src={safePost.video} controls />
+          </div>
+        )}
+
+        {/* Show image if mediaType is image or image field exists (and no video) */}
+        {(safePost.mediaType === 'image' || safePost.image) && !safePost.video && (
+          <div className="post-image-container">
+            <img src={safePost.image} alt={safePost.title} />
+          </div>
+        )}
+
+        {/* Show placeholder only if no image and no video */}
+        {!safePost.image && !safePost.video && (
+          <div className="post-image-placeholder">
+            🍽️
           </div>
         )}
       </div>
@@ -578,8 +583,11 @@ const PostComponent = ({
               </button>
             </div>
             <div className="recipe-modal-body">
-              {safePost.image && <img src={safePost.image} alt={safePost.title} />}
-              {safePost.video && !safePost.image && <video src={safePost.video} controls />}
+              {/* Show video if it exists */}
+              {safePost.video && <video src={safePost.video} controls />}
+              
+              {/* Show image only if no video */}
+              {safePost.image && !safePost.video && <img src={safePost.image} alt={safePost.title} />}
               
               <div className="recipe-details">
                 <h3>Description</h3>
