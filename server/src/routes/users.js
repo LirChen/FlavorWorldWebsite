@@ -509,6 +509,72 @@ router.get('/search', async (req, res) => {
   }
 });
 
+// GET SUGGESTED USERS (Random users for suggestions)
+router.get('/suggested', async (req, res) => {
+  try {
+    if (!isMongoConnected()) {
+      return res.status(503).json({ message: 'Database not available' });
+    }
+
+    const currentUserId = req.headers['x-user-id'] || req.query.userId;
+    const limit = parseInt(req.query.limit) || 3;
+
+    console.log(`Getting ${limit} suggested users for: ${currentUserId}`);
+
+    // Get current user to exclude people they already follow
+    let excludeIds = [currentUserId];
+    
+    if (currentUserId && mongoose.Types.ObjectId.isValid(currentUserId)) {
+      const currentUser = await User.findById(currentUserId).select('following');
+      if (currentUser && currentUser.following) {
+        excludeIds = [...excludeIds, ...currentUser.following];
+      }
+    }
+
+    // Get random users, excluding current user and people they follow
+    const suggestedUsers = await User.aggregate([
+      { 
+        $match: { 
+          _id: { $nin: excludeIds.map(id => mongoose.Types.ObjectId.isValid(id) ? new mongoose.Types.ObjectId(id) : id) }
+        } 
+      },
+      { $sample: { size: limit } },
+      { 
+        $project: { 
+          _id: 1, 
+          fullName: 1, 
+          avatar: 1, 
+          bio: 1,
+          followersCount: { $size: { $ifNull: ['$followers', []] } },
+          recipesCount: { $size: { $ifNull: ['$recipes', []] } }
+        } 
+      }
+    ]);
+
+    const formattedSuggestions = suggestedUsers.map(user => ({
+      userId: user._id,
+      userName: user.fullName,
+      userAvatar: user.avatar,
+      userBio: user.bio,
+      followersCount: user.followersCount,
+      recipesCount: user.recipesCount
+    }));
+
+    console.log(`Found ${formattedSuggestions.length} suggested users`);
+    res.json({
+      success: true,
+      data: formattedSuggestions
+    });
+
+  } catch (error) {
+    console.error('Get suggested users error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Failed to get suggested users' 
+    });
+  }
+});
+
 // DELETE USER
 router.delete('/delete', async (req, res) => {
   console.log('User delete endpoint called - redirecting to main endpoint');

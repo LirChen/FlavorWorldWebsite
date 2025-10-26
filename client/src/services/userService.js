@@ -640,6 +640,37 @@ class UserService {
       };
     }
   }
+
+  async getSuggestedUsers(limit = 3) {
+    try {
+      console.log('Fetching suggested users...');
+      
+      const currentUser = this.getCurrentUser();
+      const userId = currentUser?.id || currentUser?._id;
+      
+      const response = await this.api.get('/api/users/suggested', {
+        params: { limit },
+        headers: {
+          'x-user-id': userId || 'temp-user-id'
+        }
+      });
+      
+      console.log('Suggested users fetched:', response.data);
+      
+      return {
+        success: true,
+        data: response.data.data || response.data || []
+      };
+    } catch (error) {
+      console.error('Get suggested users error:', error);
+      
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Failed to fetch suggested users',
+        data: []
+      };
+    }
+  }
 }
 
 export const userService = new UserService();

@@ -22,6 +22,7 @@ import { useAuth } from '../../services/AuthContext';
 import { recipeService } from '../../services/recipeService';
 import { feedService } from '../../services/feedService';
 import { chatService } from '../../services/chatServices';
+import { userService } from '../../services/userService';
 import PostComponent from '../../components/common/PostComponent';
 import CreatePostComponent from '../../components/common/CreatePostComponent';
 import SharePostComponent from '../../components/common/SharePostComponent';
@@ -81,6 +82,7 @@ const HomeScreen = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [unreadChatCount, setUnreadChatCount] = useState(0);
   const [feedType, setFeedType] = useState('personalized');
+  const [suggestedUsers, setSuggestedUsers] = useState([]);
   
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedMeatType, setSelectedMeatType] = useState('all');
@@ -217,6 +219,17 @@ const HomeScreen = () => {
     }
   }, []);
 
+  const loadSuggestedUsers = useCallback(async () => {
+    try {
+      const result = await userService.getSuggestedUsers(3);
+      if (result.success) {
+        setSuggestedUsers(result.data);
+      }
+    } catch (error) {
+      console.error('Load suggested users error:', error);
+    }
+  }, []);
+
   const initializeChatService = useCallback(async () => {
     const userId = currentUser?.id || currentUser?._id;
     if (userId) {
@@ -240,8 +253,9 @@ const HomeScreen = () => {
     if (userId) {
       console.log('Initializing chat service...');
       initializeChatService();
+      loadSuggestedUsers();
     }
-  }, [currentUser?.id, currentUser?._id, initializeChatService]);
+  }, [currentUser?.id, currentUser?._id, initializeChatService, loadSuggestedUsers]);
 
   const handleRefreshData = useCallback(async () => {
     setRefreshing(true);
@@ -419,21 +433,30 @@ const HomeScreen = () => {
               <span>{currentUser?.fullName || currentUser?.name}</span>
             </button>
             
-            <button className="sidebar-item">
+            <button 
+              className="sidebar-item"
+              onClick={() => navigate('/profile')}
+            >
               <div className="sidebar-icon">
                 <ChefHat size={20} style={{ color: FLAVORWORLD_COLORS.primary }} />
               </div>
               <span>My Recipes</span>
             </button>
             
-            <button className="sidebar-item">
+            <button 
+              className="sidebar-item"
+              onClick={() => navigate('/groups')}
+            >
               <div className="sidebar-icon">
                 <UsersIcon size={20} style={{ color: FLAVORWORLD_COLORS.secondary }} />
               </div>
               <span>Groups</span>
             </button>
             
-            <button className="sidebar-item">
+            <button 
+              className="sidebar-item"
+              onClick={() => navigate('/saved')}
+            >
               <div className="sidebar-icon">
                 <Heart size={20} style={{ color: FLAVORWORLD_COLORS.danger }} />
               </div>
@@ -590,14 +613,31 @@ const HomeScreen = () => {
           <div className="sidebar-card">
             <h3>Suggested Chefs</h3>
             <div className="suggestions-list">
-              <div className="suggestion-item">
-                <UserAvatar name="Chef Mario" size={32} />
-                <div className="suggestion-info">
-                  <span className="suggestion-name">Chef Mario</span>
-                  <span className="suggestion-stats">245 recipes</span>
+              {suggestedUsers.length === 0 ? (
+                <div className="no-suggestions">
+                  <p>No suggestions available</p>
                 </div>
-                <button className="follow-btn">Follow</button>
-              </div>
+              ) : (
+                suggestedUsers.map((user) => (
+                  <div 
+                    key={user.userId} 
+                    className="suggestion-item"
+                    onClick={() => navigate(`/profile?userId=${user.userId}`)}
+                  >
+                    <UserAvatar 
+                      uri={user.userAvatar} 
+                      name={user.userName} 
+                      size={40} 
+                    />
+                    <div className="suggestion-info">
+                      <span className="suggestion-name">{user.userName}</span>
+                      <span className="suggestion-stats">
+                        {user.recipesCount || 0} recipes
+                      </span>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </aside>
