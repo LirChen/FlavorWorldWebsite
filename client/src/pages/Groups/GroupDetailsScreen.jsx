@@ -138,8 +138,60 @@ const GroupDetailsScreen = () => {
   };
 
   const handleLeaveGroup = async () => {
-    if (!group) return;
+  if (!group) return;
 
+  if (isCreator) {
+    if (!group.members || group.members.length <= 1) {
+      alert('You are the only member. Please delete the group instead of leaving.');
+      return;
+    }
+
+    const currentUserId = currentUser?.id || currentUser?._id;
+    const otherMembers = group.members.filter(m => 
+      (m.userId || m._id || m.id) !== currentUserId
+    );
+
+    if (otherMembers.length === 0) {
+      alert('Cannot leave: No other members to transfer ownership to.');
+      return;
+    }
+
+    const randomIndex = Math.floor(Math.random() * otherMembers.length);
+    const newAdmin = otherMembers[randomIndex];
+    const newAdminId = newAdmin.userId || newAdmin._id || newAdmin.id;
+    const newAdminName = newAdmin.userName || newAdmin.name || newAdmin.fullName || 'member';
+
+    const confirmMessage = `You are the group owner. If you leave, ${newAdminName} will become the new admin. Are you sure?`;
+    
+    if (!window.confirm(confirmMessage)) {
+      return;
+    }
+
+    try {
+      const transferResult = await groupService.transferOwnership(
+        groupId, 
+        currentUserId, 
+        newAdminId
+      );
+
+      if (!transferResult.success) {
+        alert(transferResult.message || 'Failed to transfer ownership');
+        return;
+      }
+
+      const leaveResult = await groupService.leaveGroup(groupId, currentUserId);
+
+      if (leaveResult.success) {
+        alert(`You have left the group. ${newAdminName} is now the admin.`);
+        navigate(-1);
+      } else {
+        alert(leaveResult.message || 'Failed to leave group');
+      }
+    } catch (error) {
+      console.error('Leave group error:', error);
+      alert('Failed to leave group');
+    }
+  } else {
     if (window.confirm('Are you sure you want to leave this group?')) {
       try {
         const result = await groupService.leaveGroup(groupId, currentUser?.id || currentUser?._id);
@@ -154,7 +206,10 @@ const GroupDetailsScreen = () => {
         alert('Failed to leave group');
       }
     }
-  };
+  }
+};
+
+////
 
   const handlePostCreated = useCallback(() => {
     setShowCreateModal(false);
@@ -370,7 +425,7 @@ const GroupDetailsScreen = () => {
                     <span>{isCreator ? 'Group Owner' : isAdmin ? 'Admin' : 'Member'}</span>
                   </button>
                   
-                  {!isCreator && (
+                  { (
                     <button 
                       className="leave-button"
                       onClick={handleLeaveGroup}
