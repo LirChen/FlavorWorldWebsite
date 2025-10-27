@@ -800,6 +800,61 @@ router.delete('/:id', async (req, res) => {
     res.status(500).json({ message: 'Failed to delete group' });
   }
 });
+///
+router.put('/:groupId/transfer-ownership', async (req, res) => {
+  console.log(' Transfer ownership called');
+  
+  try {
+    const { groupId } = req.params;
+    const { currentOwnerId, newOwnerId } = req.body;
+
+    const Group = (await import('../models/Group.js')).default;
+    const group = await Group.findById(groupId);
+    
+    if (!group) {
+      return res.status(404).json({ success: false, message: 'Group not found' });
+    }
+
+    console.log('Group structure:', {
+      createdBy: group.createdBy,
+      creator: group.creator,
+      creatorId: group.creatorId,
+      userId: group.userId
+    });
+
+    const creatorField = group.createdBy ? 'createdBy' : 
+                         group.creator ? 'creator' : 
+                         group.creatorId ? 'creatorId' : null;
+
+    if (!creatorField) {
+      return res.status(500).json({ success: false, message: 'Creator field not found' });
+    }
+
+    group[creatorField] = newOwnerId;
+    
+  if (group.members && Array.isArray(group.members)) {
+  group.members = group.members.map(member => {
+    const memberId = (member.userId || member._id || member.id).toString();
+    return {
+      userId: member.userId,
+      role: memberId === newOwnerId ? 'admin' :     
+            memberId === currentOwnerId ? 'member' : 
+            member.role || 'member',
+      joinedAt: member.joinedAt
+    };
+  });
+}
+
+    await group.save();
+    
+    console.log('Ownership transferred to:', newOwnerId);
+    res.json({ success: true, message: 'Ownership transferred successfully' });
+  } catch (error) {
+    console.error('Transfer error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 
 router.get('/:groupId/members', async (req, res) => {
   try {

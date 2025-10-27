@@ -830,7 +830,27 @@ class GroupService {
       };
     }
   }
+////
 
+async transferOwnership(groupId, currentOwnerId, newOwnerId) {
+  try {
+    const response = await this.axiosInstance.put(
+      `/groups/${groupId}/transfer-ownership`,
+      { currentOwnerId, newOwnerId }
+    );
+    
+    return {
+      success: true,
+      data: response.data
+    };
+  } catch (error) {
+    console.error('Transfer ownership error:', error);
+    return {
+      success: false,
+      message: error.response?.data?.message || error.message || 'Network error'
+    };
+  }
+}
   async getGroupWithMembers(groupId) {
     try {
       console.log('Fetching group with full member details');
