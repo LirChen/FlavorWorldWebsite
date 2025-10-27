@@ -9,8 +9,7 @@ import {
   Check
 } from 'lucide-react';
 import './SharePostComponent.css';
-import { groupService } from '../../services/groupService';
-import { userService } from '../../services/userService';
+import { chatService } from '../../services/chatServices';
 import UserAvatar from './UserAvatar';
 
 const SharePostComponent = ({
@@ -22,13 +21,13 @@ const SharePostComponent = ({
   navigation
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [friends, setFriends] = useState([]);
+  const [chats, setChats] = useState([]);
   const [groups, setGroups] = useState([]);
-  const [selectedFriends, setSelectedFriends] = useState([]);
+  const [selectedChats, setSelectedChats] = useState([]);
   const [selectedGroups, setSelectedGroups] = useState([]);
   const [loading, setLoading] = useState(true);
   const [sharing, setSharing] = useState(false);
-  const [activeTab, setActiveTab] = useState('friends');
+  const [activeTab, setActiveTab] = useState('chats');
 
   useEffect(() => {
     if (visible && currentUserId) {
@@ -39,17 +38,38 @@ const SharePostComponent = ({
   const loadData = async () => {
     setLoading(true);
     try {
-      const [friendsResult, groupsResult] = await Promise.all([
-        userService.getFriends(currentUserId),
-        groupService.getUserGroups(currentUserId)
-      ]);
-
-      if (friendsResult?.success) {
-        setFriends(friendsResult.data || []);
-      }
-
-      if (groupsResult?.success) {
-        setGroups(groupsResult.data || []);
+      // Get all chats (private and group)
+      const chatsResult = await chatService.getAllChats();
+      
+      if (chatsResult?.success) {
+        // Separate private chats and group chats
+        const privateChats = (chatsResult.data || [])
+          .filter(chat => chat.chatType === 'private')
+          .map(chat => ({
+            _id: chat._id || chat.id,
+            id: chat._id || chat.id,
+            name: chat.displayName || chat.otherUser?.userName || 'Unknown User',
+            fullName: chat.displayName || chat.otherUser?.userName || 'Unknown User',
+            avatar: chat.displayAvatar || chat.otherUser?.userAvatar,
+            userAvatar: chat.displayAvatar || chat.otherUser?.userAvatar,
+            userId: chat.otherUser?.userId,
+            chatType: 'private'
+          }));
+        
+        const groupChats = (chatsResult.data || [])
+          .filter(chat => chat.chatType === 'group')
+          .map(chat => ({
+            _id: chat._id || chat.id,
+            id: chat._id || chat.id,
+            name: chat.displayName || chat.name || 'Unknown Group',
+            avatar: chat.displayAvatar || chat.image,
+            participantsCount: chat.participantsCount || 0,
+            chatType: 'group',
+            chatId: chat._id || chat.id // Store the chat ID directly
+          }));
+        
+        setChats(privateChats);
+        setGroups(groupChats);
       }
     } catch (error) {
       console.error('Error loading share data:', error);
@@ -58,11 +78,11 @@ const SharePostComponent = ({
     }
   };
 
-  const handleToggleFriend = (friendId) => {
-    setSelectedFriends(prev =>
-      prev.includes(friendId)
-        ? prev.filter(id => id !== friendId)
-        : [...prev, friendId]
+  const handleToggleChat = (chatId) => {
+    setSelectedChats(prev =>
+      prev.includes(chatId)
+        ? prev.filter(id => id !== chatId)
+        : [...prev, chatId]
     );
   };
 
@@ -75,33 +95,127 @@ const SharePostComponent = ({
   };
 
   const handleShare = async () => {
-    if (selectedFriends.length === 0 && selectedGroups.length === 0) {
-      alert('Please select at least one friend or group');
+    if (selectedChats.length === 0 && selectedGroups.length === 0) {
+      alert('Please select at least one chat or group');
       return;
     }
 
     setSharing(true);
 
     try {
-      const shareData = {
-        postId: post._id || post.id,
-        friends: selectedFriends,
-        groups: selectedGroups,
-        userId: currentUserId
-      };
+      // Create a clickable link to the post
+      const postUrl = `${window.location.origin}/post/${post._id || post.id}`;
+      
+      // Include image/video URL in the message for preview
+      const mediaUrl = post.image || post.video || null;
+      const mediaType = post.video ? 'video' : post.image ? 'image' : null;
+      
+      // Truncate description to prevent huge messages
+      const description = post.description || '';
+      const truncatedDescription = description.length > 200 
+        ? description.substring(0, 200) + '...' 
+        : description;
+      
+      // Create a structured message that includes post preview data
+      // Format: [RECIPE_SHARE]|url|mediaUrl|mediaType|title|description|prepTime|servings|category
+      const shareMessage = `[RECIPE_SHARE]
+${postUrl}
+${mediaUrl || 'NO_MEDIA'}
+${mediaType || 'NO_MEDIA'}
+${post.title}
+${truncatedDescription}
+${post.prepTime || 'N/A'} min
+${post.servings || 'N/A'}
+${post.category || ''}`;
 
-      onShare?.(shareData);
+      console.log('Share message length:', shareMessage.length);
+      console.log('Share message:', shareMessage);
+
+      let successCount = 0;
+      let failCount = 0;
+
+      // Share to selected private chats
+      for (const chatId of selectedChats) {
+        try {
+          // Send the message with post preview metadata
+          const result = await chatService.sendMessage(
+            chatId,
+            shareMessage,
+            'text', // Changed from 'recipe_share' to 'text'
+            'private'
+          );
+          
+          if (result.success) {
+            successCount++;
+          } else {
+            failCount++;
+            console.error('Failed to share to chat:', chatId, result.message);
+          }
+        } catch (error) {
+          failCount++;
+          console.error('Error sharing to chat:', chatId, error);
+        }
+      }
+
+      // Share to selected groups
+      for (const groupId of selectedGroups) {
+        try {
+          console.log('Attempting to share to group:', groupId);
+          
+          // Use HTTP endpoint for group messages instead of socket
+          const result = await chatService.sendGroupChatMessage(
+            groupId,
+            shareMessage,
+            'text'
+          );
+          
+          console.log('Group share result:', result);
+          
+          if (result.success) {
+            successCount++;
+          } else {
+            failCount++;
+            console.error('Failed to share to group:', groupId, result.message);
+          }
+        } catch (error) {
+          failCount++;
+          console.error('Error sharing to group:', groupId, error);
+        }
+      }
+
+      // Show success/failure message
+      if (successCount > 0 && failCount === 0) {
+        alert(`Recipe shared successfully to ${successCount} chat${successCount > 1 ? 's' : ''}!`);
+      } else if (successCount > 0 && failCount > 0) {
+        alert(`Recipe shared to ${successCount} chat${successCount > 1 ? 's' : ''}, but failed for ${failCount} chat${failCount > 1 ? 's' : ''}.`);
+      } else {
+        alert('Failed to share recipe. Please try again.');
+      }
+
+      // Call onShare callback and close
+      if (successCount > 0) {
+        onShare?.({
+          postId: post._id || post.id,
+          chats: selectedChats,
+          groups: selectedGroups,
+          userId: currentUserId,
+          successCount,
+          failCount
+        });
+      }
+      
       onClose();
     } catch (error) {
       console.error('Share error:', error);
-      alert('Failed to share post');
+      alert('Failed to share recipe. Please try again.');
     } finally {
       setSharing(false);
     }
   };
 
-  const filteredFriends = friends.filter(friend =>
-    friend.name?.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredChats = chats.filter(chat =>
+    chat.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    chat.fullName?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const filteredGroups = groups.filter(group =>
@@ -135,13 +249,13 @@ const SharePostComponent = ({
         {/* Tabs */}
         <div className="share-tabs">
           <button
-            className={`share-tab ${activeTab === 'friends' ? 'active' : ''}`}
-            onClick={() => setActiveTab('friends')}
+            className={`share-tab ${activeTab === 'chats' ? 'active' : ''}`}
+            onClick={() => setActiveTab('chats')}
           >
             <User size={18} />
-            <span>Friends</span>
-            {selectedFriends.length > 0 && (
-              <span className="tab-badge">{selectedFriends.length}</span>
+            <span>Chats</span>
+            {selectedChats.length > 0 && (
+              <span className="tab-badge">{selectedChats.length}</span>
             )}
           </button>
           <button
@@ -176,31 +290,32 @@ const SharePostComponent = ({
             </div>
           ) : (
             <>
-              {activeTab === 'friends' && (
+              {activeTab === 'chats' && (
                 <div className="share-list">
-                  {filteredFriends.length === 0 ? (
+                  {filteredChats.length === 0 ? (
                     <div className="share-empty">
                       <User size={48} />
-                      <p>No friends found</p>
+                      <p>No chats found</p>
+                      <small>Start a conversation with someone to share recipes!</small>
                     </div>
                   ) : (
-                    filteredFriends.map(friend => (
+                    filteredChats.map(chat => (
                       <div
-                        key={friend._id || friend.id}
+                        key={chat._id || chat.id}
                         className={`share-item ${
-                          selectedFriends.includes(friend._id || friend.id) ? 'selected' : ''
+                          selectedChats.includes(chat._id || chat.id) ? 'selected' : ''
                         }`}
-                        onClick={() => handleToggleFriend(friend._id || friend.id)}
+                        onClick={() => handleToggleChat(chat._id || chat.id)}
                       >
                         <UserAvatar
-                          uri={friend.avatar || friend.userAvatar}
-                          name={friend.name || friend.fullName}
+                          uri={chat.avatar || chat.userAvatar}
+                          name={chat.name || chat.fullName}
                           size={40}
                         />
                         <div className="share-item-info">
-                          <h4>{friend.name || friend.fullName}</h4>
+                          <h4>{chat.name || chat.fullName}</h4>
                         </div>
-                        {selectedFriends.includes(friend._id || friend.id) && (
+                        {selectedChats.includes(chat._id || chat.id) && (
                           <div className="share-check">
                             <Check size={20} />
                           </div>
@@ -216,7 +331,8 @@ const SharePostComponent = ({
                   {filteredGroups.length === 0 ? (
                     <div className="share-empty">
                       <Users size={48} />
-                      <p>No groups found</p>
+                      <p>No group chats found</p>
+                      <small>Create or join a group chat to share recipes!</small>
                     </div>
                   ) : (
                     filteredGroups.map(group => (
@@ -232,7 +348,7 @@ const SharePostComponent = ({
                         </div>
                         <div className="share-item-info">
                           <h4>{group.name}</h4>
-                          <span>{group.members?.length || 0} members</span>
+                          <span>{group.participantsCount || 0} members</span>
                         </div>
                         {selectedGroups.includes(group._id || group.id) && (
                           <div className="share-check">
@@ -258,7 +374,7 @@ const SharePostComponent = ({
             onClick={handleShare}
             disabled={
               sharing ||
-              (selectedFriends.length === 0 && selectedGroups.length === 0)
+              (selectedChats.length === 0 && selectedGroups.length === 0)
             }
           >
             {sharing ? (
@@ -270,7 +386,7 @@ const SharePostComponent = ({
               <>
                 <Send size={18} />
                 <span>
-                  Share ({selectedFriends.length + selectedGroups.length})
+                  Share ({selectedChats.length + selectedGroups.length})
                 </span>
               </>
             )}

@@ -21,10 +21,20 @@ export default defineConfig({
     },
   ],
 
-  webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:5173',
-    reuseExistingServer: !process.env.CI,
-    timeout: 120000,
-  },
+  webServer: [
+    // Start E2E backend server first
+    {
+      command: 'cd ../server && npm run test:e2e:server',
+      url: 'http://localhost:3000/api/test/db-status',
+      reuseExistingServer: !process.env.CI,
+      timeout: 120000,
+    },
+    // Start frontend dev server
+    {
+      command: 'npm run dev',
+      url: 'http://localhost:5173',
+      reuseExistingServer: !process.env.CI,
+      timeout: 120000,
+    },
+  ],
 });

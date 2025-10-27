@@ -74,8 +74,8 @@ test.describe('Recipe Display E2E Tests', () => {
     const recipeInFeed = await waitForRecipeInFeed(page, testRecipe.title, 10000);
     expect(recipeInFeed).toBe(true);
     
-    // Verify recipe card is visible
-    const recipeCard = page.locator(`text=${testRecipe.title}`).locator('..').locator('..');
+    // Verify recipe card is visible using .post-component class
+    const recipeCard = page.locator('.post-component').filter({ hasText: testRecipe.title });
     await expect(recipeCard).toBeVisible();
   });
 
@@ -83,8 +83,9 @@ test.describe('Recipe Display E2E Tests', () => {
     await navigateToHome(page);
     await waitForRecipeInFeed(page, testRecipe.title);
     
-    // Check title is visible and correct
-    await expect(page.locator(`text=${testRecipe.title}`)).toBeVisible();
+    // Check title is visible and correct - use more specific selector to avoid sidebar matches
+    const recipeCard = page.locator('.post-component').filter({ hasText: testRecipe.title });
+    await expect(recipeCard.locator('.post-title')).toBeVisible();
   });
 
   test('should display recipe description', async ({ page }) => {
@@ -282,14 +283,14 @@ test.describe('Recipe Display E2E Tests', () => {
     await navigateToHome(page);
     await waitForRecipeInFeed(page, testRecipe.title);
     
-    // Recipe should be visible
-    await expect(page.locator(`text=${testRecipe.title}`)).toBeVisible();
+    // Recipe should be visible - use post-component locator
+    const recipeCard = page.locator('.post-component').filter({ hasText: testRecipe.title });
+    await expect(recipeCard).toBeVisible();
     
     // Title should be visible
-    const title = page.locator(`text=${testRecipe.title}`);
+    const title = recipeCard.locator('.post-title');
     await expect(title).toBeVisible();
     
-    const recipeCard = page.locator(`text=${testRecipe.title}`).locator('..').locator('..');
     const avatar = recipeCard.locator('.post-author img, [class*="avatar"]').first();
     await expect(avatar).toBeVisible({ timeout: 5000 });
     });
@@ -300,8 +301,9 @@ test.describe('Recipe Display E2E Tests', () => {
     await navigateToHome(page);
     await waitForRecipeInFeed(page, testRecipe.title);
     
-    // Recipe should be visible
-    await expect(page.locator(`text=${testRecipe.title}`)).toBeVisible();
+    // Recipe should be visible - use post-component locator
+    const recipeCard = page.locator('.post-component').filter({ hasText: testRecipe.title });
+    await expect(recipeCard).toBeVisible();
   });
 
   test('should display correctly on desktop', async ({ page }) => {
@@ -310,8 +312,9 @@ test.describe('Recipe Display E2E Tests', () => {
     await navigateToHome(page);
     await waitForRecipeInFeed(page, testRecipe.title);
     
-    // Recipe should be visible
-    await expect(page.locator(`text=${testRecipe.title}`)).toBeVisible();
+    // Recipe should be visible - use post-component locator
+    const recipeCard = page.locator('.post-component').filter({ hasText: testRecipe.title });
+    await expect(recipeCard).toBeVisible();
   });
 
   // ============================================
@@ -327,9 +330,11 @@ test.describe('Recipe Display E2E Tests', () => {
     await navigateToHome(page);
     await page.waitForTimeout(2000);
     
-    // Both recipes should be visible
-    await expect(page.locator(`text=${testRecipe.title}`)).toBeVisible({ timeout: 10000 });
-    await expect(page.locator(`text=${createResult.recipe.title}`)).toBeVisible({ timeout: 10000 });
+    // Both recipes should be visible - use post-component locator
+    const recipeCard1 = page.locator('.post-component').filter({ hasText: testRecipe.title });
+    const recipeCard2 = page.locator('.post-component').filter({ hasText: createResult.recipe.title });
+    await expect(recipeCard1).toBeVisible({ timeout: 10000 });
+    await expect(recipeCard2).toBeVisible({ timeout: 10000 });
   });
 
   test('should display recipes in chronological order', async ({ page }) => {

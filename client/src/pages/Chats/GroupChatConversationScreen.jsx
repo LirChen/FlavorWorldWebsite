@@ -225,6 +225,50 @@ const GroupChatConversationScreen = () => {
     }
   };
 
+  const isRecipeShare = (content) => {
+    return content && content.startsWith('[RECIPE_SHARE]');
+  };
+
+  const parseRecipeShare = (content) => {
+    if (!content || !content.startsWith('[RECIPE_SHARE]')) {
+      return null;
+    }
+
+    const lines = content.split('\n');
+    if (lines.length < 5) return null;
+
+    const url = lines[1]?.trim() || '';
+    const mediaUrl = lines[2]?.trim() === 'NO_MEDIA' ? null : lines[2]?.trim();
+    const mediaType = lines[3]?.trim() === 'NO_MEDIA' ? null : lines[3]?.trim();
+    const title = lines[4]?.trim() || '';
+    const description = lines[5]?.trim() || '';
+    const prepTime = lines[6]?.trim() || '';
+    const servings = lines[7]?.trim() || '';
+    const category = lines[8]?.trim() || '';
+
+    return {
+      url,
+      mediaUrl,
+      mediaType,
+      title,
+      description,
+      prepTime,
+      servings,
+      category
+    };
+  };
+
+  const handleRecipeClick = (url) => {
+    if (url) {
+      // Extract post ID from URL
+      const postIdMatch = url.match(/\/post\/([^/?]+)/);
+      if (postIdMatch) {
+        const postId = postIdMatch[1];
+        navigate(`/post/${postId}`);
+      }
+    }
+  };
+
   const isMyMessage = (message) => {
     return message.senderId === (currentUser?.id || currentUser?._id);
   };
@@ -341,6 +385,58 @@ const GroupChatConversationScreen = () => {
                     )}
                     {message.messageType === 'image' ? (
                       <img src={message.content} alt="Shared" className="message-image" />
+                    ) : isRecipeShare(message.content) ? (
+                      (() => {
+                        const recipeData = parseRecipeShare(message.content);
+                        if (!recipeData) {
+                          return <p className="message-text">{message.content}</p>;
+                        }
+
+                        return (
+                          <div 
+                            className="recipe-share-card"
+                            onClick={() => handleRecipeClick(recipeData.url)}
+                            style={{ cursor: 'pointer' }}
+                          >
+                            {recipeData.mediaUrl && (
+                              <div className="recipe-media">
+                                {recipeData.mediaType === 'video' ? (
+                                  <video 
+                                    src={recipeData.mediaUrl} 
+                                    className="recipe-image"
+                                    controls={false}
+                                    muted
+                                    playsInline
+                                    preload="metadata"
+                                    style={{ pointerEvents: 'none' }}
+                                  />
+                                ) : (
+                                  <img 
+                                    src={recipeData.mediaUrl} 
+                                    alt={recipeData.title}
+                                    className="recipe-image"
+                                  />
+                                )}
+                              </div>
+                            )}
+                            <div className="recipe-share-content">
+                              <h4 className="recipe-title">{recipeData.title}</h4>
+                              <p className="recipe-description">{recipeData.description}</p>
+                              <div className="recipe-meta">
+                                {recipeData.prepTime && (
+                                  <span>⏱️ {recipeData.prepTime}</span>
+                                )}
+                                {recipeData.servings && (
+                                  <span>👥 {recipeData.servings}</span>
+                                )}
+                                {recipeData.category && (
+                                  <span>📂 {recipeData.category}</span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()
                     ) : (
                       <p className="message-text">{message.content}</p>
                     )}

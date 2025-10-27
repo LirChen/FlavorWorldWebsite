@@ -112,6 +112,51 @@ class GroupService {
     }
   }
 
+  async getUserGroups(userId) {
+    try {
+      console.log('Fetching user groups for:', userId);
+      
+      if (!userId) {
+        return {
+          success: false,
+          message: 'User ID is required'
+        };
+      }
+      
+      const response = await this.axiosInstance.get('/groups', { 
+        params: { userId },
+        timeout: 15000
+      });
+
+      // Filter to only groups where user is a member
+      const userGroups = response.data.filter(group => 
+        this.isMember(group, userId)
+      );
+
+      console.log(`User is member of ${userGroups.length} groups`);
+      return {
+        success: true,
+        data: userGroups
+      };
+      
+    } catch (error) {
+      console.error('Get user groups error:', error);
+      
+      if (error.code === 'ECONNABORTED') {
+        return {
+          success: false,
+          message: 'Connection timeout - please check your network and try again'
+        };
+      }
+      
+      return {
+        success: false,
+        message: error.response?.data?.message || error.message,
+        data: []
+      };
+    }
+  }
+
   async searchGroups(query, userId = null) {
     try {
       console.log('Searching groups');

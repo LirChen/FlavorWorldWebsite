@@ -34,6 +34,9 @@ A modern full-stack social platform for food enthusiasts to share recipes, join 
 - **Live Updates**: Real-time message delivery and notifications
 - **Read Receipts**: Track message status
 - **Chat History**: Persistent message storage
+- **Recipe Sharing**: Share recipes directly in chats with interactive preview cards
+- **Media Preview**: Recipe cards display images/videos, title, description, and cooking details
+- **One-Click Navigation**: Click recipe cards to open full post with like, comment, and save options
 
 ### 🔔 Notifications System
 - **Real-time Alerts**: Instant notifications for likes, comments, and follows
@@ -50,9 +53,10 @@ A modern full-stack social platform for food enthusiasts to share recipes, join 
 ### 📱 Social Features
 - **Like System**: Show appreciation for recipes
 - **Comments**: Engage with recipe creators
-- **Share Posts**: Re-share recipes to your feed
+- **Share to Chats**: Share recipes to private chats and group chats with rich preview cards
 - **Feed Algorithm**: Personalized home feed with recipes from followed users and joined groups
 - **Saved Recipes**: Bookmark your favorite recipes for later
+- **Recipe Preview Cards**: Beautiful recipe cards with images/videos, title, description, and metadata in chat messages
 
 ### 🎨 Modern UI/UX
 - **Responsive Design**: Mobile-first approach, works on all devices
