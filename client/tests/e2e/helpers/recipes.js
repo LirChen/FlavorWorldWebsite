@@ -293,6 +293,19 @@ export async function waitForRecipeInFeed(page, recipeTitle, timeout = 10000) {
 export async function navigateToHome(page) {
   await page.goto('http://localhost:5173/home');
   await page.waitForLoadState('networkidle');
+  
+  // Click on "All Posts" button to ensure we see all recipes
+  try {
+    const allPostsButton = page.locator('button:has-text("All Posts")');
+    if (await allPostsButton.isVisible({ timeout: 2000 })) {
+      await allPostsButton.click();
+      await page.waitForTimeout(1500); // Wait for feed to reload
+    }
+  } catch (error) {
+    // Button might not be visible or already selected
+    console.log('All Posts button not found or already selected');
+  }
+  
   await page.waitForTimeout(1000); // Extra wait for feed to load
 }
 

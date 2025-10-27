@@ -330,6 +330,11 @@ const HomeScreen = () => {
     setShowShareModal(true);
   }, []);
 
+  const handleShareSuccess = useCallback((shareData) => {
+    console.log('Recipe shared successfully:', shareData);
+    // Optionally show a toast notification or update UI
+  }, []);
+
   const handleSystemShare = useCallback(async (post) => {
     try {
       const shareContent = `Check out this amazing recipe: ${post.title}\n\n${post.description}`;
@@ -593,8 +598,7 @@ const HomeScreen = () => {
                     post={post}
                     navigation={{ navigate }}
                     onDelete={handlePostDelete}
-                    onShare={() => handleSystemShare(post)}
-                    onShareCustom={() => handleShare(post)}
+                    onShare={() => handleShare(post)}
                     onRefreshData={handleRefreshData}
                   />
                 </div>
@@ -690,7 +694,7 @@ const HomeScreen = () => {
           visible={showShareModal}
           onClose={() => setShowShareModal(false)}
           post={sharePost}
-          onShare={() => setShowShareModal(false)}
+          onShare={handleShareSuccess}
           currentUserId={currentUser?.id || currentUser?._id}
           navigation={{ navigate }}
         />

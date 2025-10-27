@@ -300,8 +300,17 @@ class ChatService {
       };
 
       console.log(` Sending ${chatType} message:`, messageData);
+      console.log('Content length:', content.length);
+      
+      // Set a timeout in case the server doesn't respond
+      const timeout = setTimeout(() => {
+        console.error(' Message send timeout');
+        resolve({ success: false, message: 'Request timeout' });
+      }, 10000); // 10 second timeout
       
       this.socket.emit(event, messageData, (response) => {
+        clearTimeout(timeout);
+        
         if (response && response.success) {
           console.log(` ${chatType} message sent successfully`);
           resolve({ success: true, data: response.data });
