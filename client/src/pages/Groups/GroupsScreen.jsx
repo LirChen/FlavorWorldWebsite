@@ -27,6 +27,7 @@ const GroupsScreen = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeTab, setActiveTab] = useState('myGroups'); // 'myGroups' or 'discover'
 
   useEffect(() => {
     loadGroups();
@@ -257,15 +258,42 @@ const GroupsScreen = () => {
           )}
         </div>
 
-        {/* Split View */}
-        <div className="split-container">
-          {/* My Groups Section */}
-          <div className="split-section">
-            <div className="section-header">
-              <h3>My Groups ({myGroups.length})</h3>
-            </div>
-            
-            <div className="section-content">
+        {/* Tabs */}
+        <div className="tabs-container">
+          <button
+            className={`tab-button ${activeTab === 'myGroups' ? 'active' : ''}`}
+            onClick={() => setActiveTab('myGroups')}
+          >
+            <Users size={18} />
+            <span>My Groups</span>
+            <span className="tab-badge">{myGroups.length}</span>
+          </button>
+          <button
+            className={`tab-button ${activeTab === 'discover' ? 'active' : ''}`}
+            onClick={() => setActiveTab('discover')}
+          >
+            <Globe size={18} />
+            <span>Discover</span>
+            {activeTab === 'discover' && (
+              <button 
+                className="tab-refresh-button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  refreshDiscoverGroups();
+                }}
+                title="Show different groups"
+              >
+                <RefreshCw size={14} />
+              </button>
+            )}
+          </button>
+        </div>
+
+        {/* Tab Content */}
+        <div className="tab-content">
+          {activeTab === 'myGroups' ? (
+            // My Groups Tab
+            <div className="groups-list">
               {myGroups.length === 0 ? (
                 <div className="empty-state">
                   <Users size={80} />
@@ -289,22 +317,9 @@ const GroupsScreen = () => {
                 </div>
               )}
             </div>
-          </div>
-
-          {/* Discover Section */}
-          <div className="split-section">
-            <div className="section-header">
-              <h3>Discover</h3>
-              <button 
-                className="refresh-icon-button"
-                onClick={refreshDiscoverGroups}
-                title="Show different groups"
-              >
-                <RefreshCw size={16} />
-              </button>
-            </div>
-            
-            <div className="section-content">
+          ) : (
+            // Discover Tab
+            <div className="groups-list">
               {groups.length === 0 ? (
                 <div className="empty-state">
                   <Users size={80} />
@@ -328,7 +343,7 @@ const GroupsScreen = () => {
                 </div>
               )}
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>
