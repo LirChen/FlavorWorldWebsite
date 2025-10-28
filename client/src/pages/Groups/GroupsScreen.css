@@ -110,9 +110,10 @@
   align-items: center;
   gap: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-  transform: translateY(-40px); 
-
-  
+  flex-shrink: 0;
+  position: sticky;
+  top: 30px;
+  z-index: 90;
 }
 
 .search-container input {
@@ -156,76 +157,106 @@
   color: var(--primary);
 }
 
-/* Split Container */
-.split-container {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  padding: 16px;
-  flex: 1;
-  overflow: hidden;
-}
-
-.split-section {
-  background: white;
-  border-radius: 20px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+/* Tabs */
+.tabs-container {
   display: flex;
-  flex-direction: column;
-  overflow: hidden;
+  background: white;
+  border-bottom: 2px solid var(--border);
+  padding: 0 16px;
+  gap: 8px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 118px;
+  z-index: 85;
 }
 
-.section-header {
-  padding: 16px 20px;
-  border-bottom: 2px solid var(--border);
+.tab-button {
+  flex: 1;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  background: linear-gradient(135deg, #FFF8F0 0%, #F7F0E6 100%);
+  justify-content: center;
+  gap: 8px;
+  padding: 16px 20px;
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: var(--text-light);
+  font-size: 16px;
+  font-weight: 600;
+  position: relative;
 }
 
-.section-header h3 {
-  font-size: 18px;
-  font-weight: 700;
+.tab-button:hover {
+  background: rgba(245, 166, 35, 0.05);
+  color: var(--primary);
+}
+
+.tab-button.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+  background: linear-gradient(135deg, rgba(245, 166, 35, 0.05) 0%, rgba(78, 209, 196, 0.05) 100%);
+}
+
+.tab-button svg {
+  flex-shrink: 0;
+}
+
+.tab-badge {
   background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  margin: 0;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 700;
+  min-width: 24px;
+  text-align: center;
 }
 
-.refresh-icon-button {
-  width: 36px;
-  height: 36px;
+.tab-button.active .tab-badge {
+  box-shadow: 0 2px 8px rgba(245, 166, 35, 0.3);
+}
+
+.tab-refresh-button {
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
-  background: white;
-  border: 2px solid var(--primary);
+  background: rgba(245, 166, 35, 0.1);
+  border: 1px solid var(--primary);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   transition: all 0.3s ease;
   color: var(--primary);
+  margin-left: 8px;
 }
 
-.refresh-icon-button:hover {
+.tab-refresh-button:hover {
   transform: rotate(180deg) scale(1.1);
   background: var(--primary);
   color: white;
-  box-shadow: 0 4px 12px rgba(245, 166, 35, 0.25);
+  box-shadow: 0 2px 8px rgba(245, 166, 35, 0.25);
 }
 
-.section-content {
+/* Tab Content */
+.tab-content {
   flex: 1;
   overflow-y: auto;
-  padding: 16px;
+  background: linear-gradient(135deg, #FFF8F0 0%, #F7F0E6 100%);
+}
+
+.groups-list {
+  padding: 20px;
+  min-height: 100%;
 }
 
 /* Groups Grid */
 .groups-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
 }
 
 /* Group Card */
@@ -493,18 +524,13 @@
 /* Responsive */
 @media (max-width: 1200px) {
   .groups-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   }
 }
 
 @media (max-width: 968px) {
-  .split-container {
-    grid-template-columns: 1fr;
-    overflow-y: auto;
-  }
-  
-  .split-section {
-    min-height: 400px;
+  .groups-grid {
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
   }
 }
 
@@ -519,9 +545,18 @@
     width: 40px;
   }
   
-  .split-container {
-    padding: 12px;
-    gap: 12px;
+  .groups-list {
+    padding: 16px;
+  }
+  
+  .groups-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  
+  .tab-button {
+    padding: 14px 12px;
+    font-size: 14px;
   }
 }
 
@@ -530,11 +565,13 @@
     border-radius: 16px;
   }
   
-  .section-header {
-    padding: 12px 16px;
+  .groups-list {
+    padding: 12px;
   }
   
-  .section-header h3 {
-    font-size: 16px;
+  .tab-button {
+    padding: 12px 8px;
+    font-size: 13px;
+    gap: 6px;
   }
 }
