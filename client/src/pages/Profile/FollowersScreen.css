@@ -44,6 +44,11 @@
   color: var(--accent);
 }
 
+.back-btn svg {
+  width: 22px;
+  height: 22px;
+}
+
 .back-btn:hover {
   background: var(--hover);
 }

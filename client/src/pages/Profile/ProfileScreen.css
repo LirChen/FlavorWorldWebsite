@@ -17,6 +17,11 @@
   background: var(--white);
   border-bottom: 1px solid var(--border);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
 }
 
 .profile-header-content {
@@ -53,6 +58,12 @@
   cursor: pointer;
   transition: all 0.3s;
   color: var(--accent);
+  flex-shrink: 0;
+}
+
+.back-btn svg {
+  width: 22px;
+  height: 22px;
 }
 
 .back-btn:hover {
@@ -80,6 +91,13 @@
   cursor: pointer;
   color: var(--accent);
   transition: all 0.3s;
+  flex-shrink: 0;
+}
+
+.settings-btn svg,
+.options-btn svg {
+  width: 20px;
+  height: 20px;
 }
 
 .settings-btn:hover,
@@ -606,6 +624,17 @@
   font-weight: 600;
 }
 
+.setting-item svg {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.setting-item > span:not(.arrow) {
+  flex: 1;
+  text-align: left;
+}
+
 .setting-item:hover {
   background: linear-gradient(135deg, rgba(245, 166, 35, 0.1), rgba(78, 205, 196, 0.05));
   transform: translateX(4px);
@@ -614,6 +643,8 @@
 .setting-item .arrow {
   margin-left: auto;
   color: var(--text-light);
+  font-size: 18px;
+  flex-shrink: 0;
 }
 
 .divider {
