@@ -26,17 +26,7 @@ const GroupsScreen = () => {
   const [myGroups, setMyGroups] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [selectedTab, setSelectedTab] = useState('my');
   const [searchQuery, setSearchQuery] = useState('');
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearchQuery(searchQuery);
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
 
   useEffect(() => {
     loadGroups();
@@ -124,22 +114,6 @@ const GroupsScreen = () => {
       console.error('Refresh discover groups error:', error);
     }
   };
-
-  const filteredGroups = useMemo(() => {
-    const currentGroups = selectedTab === 'my' ? myGroups : groups;
-    
-    if (!debouncedSearchQuery.trim()) {
-      return currentGroups;
-    }
-
-    const query = debouncedSearchQuery.toLowerCase();
-    return currentGroups.filter(group =>
-      group.name.toLowerCase().includes(query) ||
-      group.description?.toLowerCase().includes(query) ||
-      group.category.toLowerCase().includes(query) ||
-      group.creatorName?.toLowerCase().includes(query)
-    );
-  }, [selectedTab, myGroups, groups, debouncedSearchQuery]);
 
   const renderGroupCard = (group) => {
     const isMember = groupService.isMember(group, currentUser?.id || currentUser?._id);
@@ -283,69 +257,79 @@ const GroupsScreen = () => {
           )}
         </div>
 
-        {/* Tabs */}
-        <div className="tabs-container">
-          <button
-            className={selectedTab === 'my' ? 'active' : ''}
-            onClick={() => setSelectedTab('my')}
-          >
-            My Groups ({myGroups.length})
-          </button>
+        {/* Split View */}
+        <div className="split-container">
+          {/* My Groups Section */}
+          <div className="split-section">
+            <div className="section-header">
+              <h3>My Groups ({myGroups.length})</h3>
+            </div>
+            
+            <div className="section-content">
+              {myGroups.length === 0 ? (
+                <div className="empty-state">
+                  <Users size={80} />
+                  <h3>No Groups Yet</h3>
+                  <p>Join cooking groups or create your own to share recipes with fellow food lovers!</p>
+                  <button 
+                    className="create-group-button"
+                    onClick={() => navigate('/group/create')}
+                  >
+                    Create Group
+                  </button>
+                </div>
+              ) : (
+                <div className="groups-grid">
+                  {myGroups.filter(group =>
+                    !searchQuery.trim() || 
+                    group.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    group.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    group.category.toLowerCase().includes(searchQuery.toLowerCase())
+                  ).map(group => renderGroupCard(group))}
+                </div>
+              )}
+            </div>
+          </div>
 
-          <button
-            className={selectedTab === 'discover' ? 'active' : ''}
-            onClick={() => setSelectedTab('discover')}
-          >
-            Discover
-          </button>
-        </div>
-
-        {/* Refresh Button */}
-        {selectedTab === 'discover' && !searchQuery.trim() && (
-          <button 
-            className="refresh-button"
-            onClick={refreshDiscoverGroups}
-          >
-            <RefreshCw size={16} />
-            <span>Show Different Groups</span>
-          </button>
-        )}
-
-        {/* Groups Grid */}
-        {filteredGroups.length === 0 ? (
-          <div className="empty-state">
-            <Users size={80} />
-            <h3>
-              {selectedTab === 'my' ? 'No Groups Yet' : 'No New Groups to Discover'}
-            </h3>
-            <p>
-              {selectedTab === 'my' 
-                ? 'Join cooking groups or create your own to share recipes with fellow food lovers!'
-                : 'Great! You\'re already a member of all available groups. Check back later for new communities!'
-              }
-            </p>
-            {selectedTab === 'my' && (
+          {/* Discover Section */}
+          <div className="split-section">
+            <div className="section-header">
+              <h3>Discover</h3>
               <button 
-                className="create-group-button"
-                onClick={() => navigate('/group/create')}
-              >
-                Create Group
-              </button>
-            )}
-            {selectedTab === 'discover' && (
-              <button 
-                className="create-group-button"
+                className="refresh-icon-button"
                 onClick={refreshDiscoverGroups}
+                title="Show different groups"
               >
-                Refresh
+                <RefreshCw size={16} />
               </button>
-            )}
+            </div>
+            
+            <div className="section-content">
+              {groups.length === 0 ? (
+                <div className="empty-state">
+                  <Users size={80} />
+                  <h3>No New Groups</h3>
+                  <p>Great! You're already a member of all available groups.</p>
+                  <button 
+                    className="create-group-button"
+                    onClick={refreshDiscoverGroups}
+                  >
+                    Refresh
+                  </button>
+                </div>
+              ) : (
+                <div className="groups-grid">
+                  {groups.filter(group =>
+                    !searchQuery.trim() || 
+                    group.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    group.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    group.category.toLowerCase().includes(searchQuery.toLowerCase())
+                  ).map(group => renderGroupCard(group))}
+                </div>
+              )}
+            </div>
           </div>
-        ) : (
-          <div className="groups-grid">
-            {filteredGroups.map(group => renderGroupCard(group))}
-          </div>
-        )}
+        </div>
       </div>
     </div>
   );
