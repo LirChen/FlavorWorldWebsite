@@ -32,6 +32,7 @@ import { userService } from '../../services/userService';
 import { chatService } from '../../services/chatServices';
 import { statisticsService } from '../../services/statisticsService';
 import { groupService } from '../../services/groupService';
+import { followService } from '../../services/followService';
 const ProfileScreen = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -105,7 +106,7 @@ const ProfileScreen = () => {
             }
           } else {
             alert('Failed to load user profile');
-            navigate(-1);
+            navigate('/home');
             return;
           }
         }
@@ -193,18 +194,25 @@ const ProfileScreen = () => {
           
           let followersCount = 0;
           let followingCount = 0;
+          
           try {
-            const followersResult = await statisticsService.getFollowersGrowth(userId);
+            // Get actual followers/following counts from the backend
+            const [followersResult, followingResult] = await Promise.all([
+              followService.getFollowers(userId),
+              followService.getFollowing(userId)
+            ]);
+            
             if (canceled) return;
             
-            if (followersResult.success && followersResult.data) {
-              followersCount = followersResult.currentFollowersCount || 0;
+            if (followersResult.success && Array.isArray(followersResult.data)) {
+              followersCount = followersResult.data.length;
             }
             
-            // Get following count
-            const userProfile = profileUser || currentUser;
-            followingCount = userProfile?.following?.length || 0;
+            if (followingResult.success && Array.isArray(followingResult.data)) {
+              followingCount = followingResult.data.length;
+            }
           } catch (followersError) {
+            console.error('Error loading follow counts:', followersError);
             followersCount = 0;
             followingCount = 0;
           }
@@ -266,11 +274,29 @@ const ProfileScreen = () => {
       if (result.success) {
         setIsFollowing(!isFollowing);
         
-        // Update the followers count with the value from server
-        setStats(prev => ({
-          ...prev,
-          followersCount: result.data.followersCount || (isFollowing ? prev.followersCount - 1 : prev.followersCount + 1)
-        }));
+        // Get updated follower count from backend
+        try {
+          const followersResult = await followService.getFollowers(userId);
+          if (followersResult.success && Array.isArray(followersResult.data)) {
+            setStats(prev => ({
+              ...prev,
+              followersCount: followersResult.data.length
+            }));
+          } else {
+            // Fallback to manual calculation
+            setStats(prev => ({
+              ...prev,
+              followersCount: isFollowing ? prev.followersCount - 1 : prev.followersCount + 1
+            }));
+          }
+        } catch (error) {
+          console.error('Error getting updated count:', error);
+          // Fallback to manual calculation
+          setStats(prev => ({
+            ...prev,
+            followersCount: isFollowing ? prev.followersCount - 1 : prev.followersCount + 1
+          }));
+        }
         
         alert(isFollowing ? 'Unfollowed successfully' : 'Following successfully!');
       } else {
@@ -396,7 +422,7 @@ const ProfileScreen = () => {
     return (
       <div className="profile-screen">
         <header className="profile-header">
-          <button className="back-btn" onClick={() => navigate(-1)}>
+          <button className="back-btn" onClick={() => navigate('/home')}>
             <ArrowLeft size={24} />
           </button>
           <h1>Profile</h1>
@@ -417,7 +443,7 @@ const ProfileScreen = () => {
     <div className="profile-screen">
       {/* Header */}
       <header className="profile-header">
-        <button className="back-btn" onClick={() => navigate(-1)}>
+        <button className="back-btn" onClick={() => navigate('/home')}>
           <ArrowLeft size={24} />
         </button>
         

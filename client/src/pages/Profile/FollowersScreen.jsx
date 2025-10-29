@@ -33,6 +33,15 @@ const FollowersScreen = () => {
 
   const isOwnProfile = !userId || userId === (currentUser?.id || currentUser?._id);
 
+  const handleBackClick = () => {
+    // Navigate back to the profile page
+    if (userId) {
+      navigate(`/profile?userId=${userId}`);
+    } else {
+      navigate('/profile');
+    }
+  };
+
   useEffect(() => {
     setActiveTab(tabParam);
   }, [tabParam]);
@@ -52,22 +61,25 @@ const FollowersScreen = () => {
       
       if (activeTab === 'followers') {
         const result = await followService.getFollowers(targetUserId);
+        console.log('Followers result:', result);
         if (result.success) {
+          console.log('Followers data:', result.data);
           setFollowers(result.data || []);
         } else {
-          alert(result.message || 'Failed to load followers');
+          console.error('Failed to load followers:', result.message);
         }
       } else {
         const result = await followService.getFollowing(targetUserId);
+        console.log('Following result:', result);
         if (result.success) {
+          console.log('Following data:', result.data);
           setFollowing(result.data || []);
         } else {
-          alert(result.message || 'Failed to load following');
+          console.error('Failed to load following:', result.message);
         }
       }
     } catch (error) {
       console.error('Load data error:', error);
-      alert(`Failed to load ${activeTab}`);
     } finally {
       setLoading(false);
     }
@@ -144,7 +156,7 @@ const FollowersScreen = () => {
     return (
       <div className="followers-screen">
         <header className="followers-header">
-          <button className="back-btn" onClick={() => navigate(-1)}>
+          <button className="back-btn" onClick={handleBackClick}>
             <ArrowLeft size={24} />
           </button>
           <h1>{activeTab === 'followers' ? 'Followers' : 'Following'}</h1>
@@ -163,44 +175,20 @@ const FollowersScreen = () => {
     <div className="followers-screen">
       {/* Header */}
       <header className="followers-header">
-        <button className="back-btn" onClick={() => navigate(-1)}>
+        <button className="back-btn" onClick={handleBackClick}>
           <ArrowLeft size={24} />
         </button>
         <h1>{activeTab === 'followers' ? 'Followers' : 'Following'} ({filteredList.length})</h1>
         <div className="header-placeholder" />
       </header>
 
-      {/* Tabs */}
-      <div className="tabs-container">
-        <button 
-          className={`tab-button ${activeTab === 'followers' ? 'active' : ''}`}
-          onClick={() => {
-            setActiveTab('followers');
-            navigate(`/profile/followers?userId=${userId || ''}&tab=followers`);
-          }}
-        >
-          <Users size={18} />
-          <span>Followers</span>
-        </button>
-        <button 
-          className={`tab-button ${activeTab === 'following' ? 'active' : ''}`}
-          onClick={() => {
-            setActiveTab('following');
-            navigate(`/profile/followers?userId=${userId || ''}&tab=following`);
-          }}
-        >
-          <UserPlus size={18} />
-          <span>Following</span>
-        </button>
-      </div>
-
-      {/* Search */}
-      <div className="search-container">
-        <div className="search-bar">
+      <div className="followers-content">
+        {/* Search */}
+        <div className="search-container">
           <Search size={20} />
           <input
             type="text"
-            placeholder="Search followers..."
+            placeholder={`Search ${activeTab}...`}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -210,10 +198,33 @@ const FollowersScreen = () => {
             </button>
           )}
         </div>
-      </div>
 
-      {/* Followers List */}
-      <div className="followers-list">
+        {/* Tabs */}
+        <div className="tabs-container">
+          <button 
+            className={`tab-button ${activeTab === 'followers' ? 'active' : ''}`}
+            onClick={() => {
+              setActiveTab('followers');
+              navigate(`/profile/followers?userId=${userId || ''}&tab=followers`);
+            }}
+          >
+            <Users size={18} />
+            <span>Followers</span>
+          </button>
+          <button 
+            className={`tab-button ${activeTab === 'following' ? 'active' : ''}`}
+            onClick={() => {
+              setActiveTab('following');
+              navigate(`/profile/followers?userId=${userId || ''}&tab=following`);
+            }}
+          >
+            <UserPlus size={18} />
+            <span>Following</span>
+          </button>
+        </div>
+
+        {/* Followers List */}
+        <div className="followers-list">
         {filteredList.length === 0 ? (
           <div className="empty-state">
             <div className="empty-icon">👥</div>
@@ -286,6 +297,7 @@ const FollowersScreen = () => {
             );
           })
         )}
+        </div>
       </div>
     </div>
   );

@@ -7,8 +7,14 @@ const UserSchema = new mongoose.Schema({
   password: { type: String, required: true },
   bio: { type: String, maxlength: 500 },
   avatar: { type: String, maxlength: 10000000 },
-  followers: [{ type: String }],
-  following: [{ type: String }],
+  followers: [{
+    userId: { type: String, required: true },
+    followedAt: { type: Date, default: Date.now }
+  }],
+  following: [{
+    userId: { type: String, required: true },
+    followedAt: { type: Date, default: Date.now }
+  }],
   savedRecipes: [{
     recipeId: { type: mongoose.Schema.Types.ObjectId, ref: 'Recipe' },
     savedAt: { type: Date, default: Date.now }

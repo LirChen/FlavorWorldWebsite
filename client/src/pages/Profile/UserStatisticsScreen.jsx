@@ -14,6 +14,8 @@ import './UserStatisticsScreen.css';
 import { statisticsService } from '../../services/statisticsService';
 import { recipeService } from '../../services/recipeService';
 import { groupService } from '../../services/groupService';
+import { followService } from '../../services/followService';
+import { userService } from '../../services/userService';
 import { Line, Bar, Doughnut } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -54,26 +56,62 @@ const COLORS = {
   pink: '#E91E63'
 };
 
-const generateFollowersGrowthData = (currentFollowers) => {
-  const months = [];
+const generateFollowersGrowthData = (followersData, userCreatedAt) => {
   const now = new Date();
+  const accountCreationDate = userCreatedAt ? new Date(userCreatedAt) : new Date(now.getFullYear(), now.getMonth() - 5, 1);
   
-  for (let i = 5; i >= 0; i--) {
+  // Start from account creation month or 5 months ago, whichever is more recent
+  const startDate = new Date(Math.max(
+    accountCreationDate.getTime(),
+    new Date(now.getFullYear(), now.getMonth() - 5, 1).getTime()
+  ));
+  
+  // Calculate number of months since account creation
+  const monthsSinceCreation = Math.floor((now - startDate) / (1000 * 60 * 60 * 24 * 30));
+  const monthsToShow = Math.min(monthsSinceCreation + 1, 6); // Show up to 6 months
+  
+  // Group followers by month based on their followedAt timestamp
+  const followersByMonth = {};
+  
+  followersData.forEach(follower => {
+    if (follower.followedAt) {
+      const followDate = new Date(follower.followedAt);
+      const monthKey = `${followDate.getFullYear()}-${followDate.getMonth()}`;
+      if (!followersByMonth[monthKey]) {
+        followersByMonth[monthKey] = 0;
+      }
+      followersByMonth[monthKey]++;
+    }
+  });
+  
+  // Build the growth data
+  const months = [];
+  let cumulativeCount = 0;
+  
+  for (let i = monthsToShow - 1; i >= 0; i--) {
     const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const monthName = date.toLocaleString('en-US', { month: 'short' });
-    const monthYear = date.toLocaleString('en-US', { month: 'short', year: 'numeric' });
     
-    const progress = (6 - i) / 6;
-    const baseFollowers = Math.round(currentFollowers * progress);
-    const variation = Math.floor(Math.random() * (currentFollowers * 0.1));
-    const followers = Math.max(0, baseFollowers + (i === 0 ? 0 : variation));
-    
-    months.push({
-      month: monthName,
-      monthYear: monthYear,
-      date: date,
-      followers: i === 0 ? currentFollowers : followers
-    });
+    // Only show data if the month is after or equal to account creation
+    if (date >= new Date(accountCreationDate.getFullYear(), accountCreationDate.getMonth(), 1)) {
+      const monthKey = `${date.getFullYear()}-${date.getMonth()}`;
+      const monthName = date.toLocaleString('en-US', { month: 'short' });
+      const monthYear = date.toLocaleString('en-US', { month: 'short', year: 'numeric' });
+      
+      // Add followers from this month
+      if (followersByMonth[monthKey]) {
+        cumulativeCount += followersByMonth[monthKey];
+      }
+      
+      // For current month, show total count (including followers without timestamps)
+      const followers = (i === 0) ? followersData.length : cumulativeCount;
+      
+      months.push({
+        month: monthName,
+        monthYear: monthYear,
+        date: date,
+        followers: Math.max(0, followers)
+      });
+    }
   }
   
   return months;
@@ -156,16 +194,30 @@ const UserStatisticsScreen = () => {
         const realUserData = statisticsService.processRealUserData(userPosts, userId);
         
         try {
-          const followersResult = await statisticsService.getFollowersGrowth(userId);
+          // Get user profile for creation date
+          let userCreatedAt = null;
+          try {
+            const userProfileResult = await userService.getUserProfile(userId);
+            if (userProfileResult.success && userProfileResult.data) {
+              userCreatedAt = userProfileResult.data.createdAt;
+            }
+          } catch (error) {
+            console.error('Error loading user profile:', error);
+          }
+          
+          // Get actual followers count from backend
+          const followersResult = await followService.getFollowers(userId);
           if (canceled) return;
           
           let followersCount = 0;
+          let followersData = [];
           
-          if (followersResult.success && followersResult.data) {
-            followersCount = followersResult.currentFollowersCount || 0;
+          if (followersResult.success && Array.isArray(followersResult.data)) {
+            followersCount = followersResult.data.length;
+            followersData = followersResult.data;
           }
           
-          const followersGrowth = generateFollowersGrowthData(followersCount);
+          const followersGrowth = generateFollowersGrowthData(followersData, userCreatedAt);
           realUserData.followersGrowth = followersGrowth;
           realUserData.totalFollowers = followersCount;
           
