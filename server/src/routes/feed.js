@@ -34,7 +34,10 @@ router.get('/', async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    const following = user.following || [];
+    // Extract userIds from following array (handles both old string format and new object format)
+    const following = (user.following || []).map(f => 
+      typeof f === 'string' ? f : f.userId
+    );
     console.log('User follows:', following.length, 'people');
 
     const userGroups = await Group.find({
@@ -298,7 +301,10 @@ router.get('/posts', async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    const following = user.following || [];
+    // Extract userIds from following array (handles both old string format and new object format)
+    const following = (user.following || []).map(f => 
+      typeof f === 'string' ? f : f.userId
+    );
     console.log('User follows:', following.length, 'people');
 
     if (following.length === 0) {

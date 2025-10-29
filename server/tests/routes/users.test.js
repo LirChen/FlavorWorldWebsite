@@ -486,8 +486,8 @@ describe('Users Routes - Unit Tests', () => {
       const followedUser = await User.findById(user2._id);
       const follower = await User.findById(user1._id);
       
-      expect(followedUser.followers).toContain(user1._id.toString());
-      expect(follower.following).toContain(user2._id.toString());
+      expect(followedUser.followers.some(f => f.userId === user1._id.toString())).toBe(true);
+      expect(follower.following.some(f => f.userId === user2._id.toString())).toBe(true);
     });
 
     it('should create notification when following', async () => {
@@ -598,8 +598,8 @@ describe('Users Routes - Unit Tests', () => {
   describe('DELETE /:userId/follow - Unfollow User', () => {
     beforeEach(async () => {
       // Setup: user1 follows user2
-      user2.followers = [user1._id.toString()];
-      user1.following = [user2._id.toString()];
+      user2.followers = [{ userId: user1._id.toString(), followedAt: new Date() }];
+      user1.following = [{ userId: user2._id.toString(), followedAt: new Date() }];
       await user1.save();
       await user2.save();
     });
@@ -693,8 +693,11 @@ describe('Users Routes - Unit Tests', () => {
   describe('GET /:userId/follow-status/:viewerId - Get Follow Status', () => {
     beforeEach(async () => {
       // Setup: user2 has 2 followers, follows 1
-      user2.followers = [user1._id.toString(), user3._id.toString()];
-      user2.following = [user1._id.toString()];
+      user2.followers = [
+        { userId: user1._id.toString(), followedAt: new Date() },
+        { userId: user3._id.toString(), followedAt: new Date() }
+      ];
+      user2.following = [{ userId: user1._id.toString(), followedAt: new Date() }];
       await user2.save();
     });
 
