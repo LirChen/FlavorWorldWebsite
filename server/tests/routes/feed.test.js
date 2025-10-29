@@ -112,8 +112,8 @@ describe('Feed Routes - Unit Tests', () => {
     });
 
     // Setup following relationships
-    user1.following = [user2._id.toString()];
-    user2.followers = [user1._id.toString()];
+    user1.following = [{ userId: user2._id.toString(), followedAt: new Date() }];
+    user2.followers = [{ userId: user1._id.toString(), followedAt: new Date() }];
     await user1.save();
     await user2.save();
 
