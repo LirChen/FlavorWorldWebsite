@@ -876,7 +876,7 @@ describe('Users Routes - Unit Tests', () => {
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
-      expect(response.body.message).toBe('User deleted successfully');
+      expect(response.body.message).toBe('User and all related data deleted successfully');
 
       // Verify user was deleted
       const deletedUser = await User.findById(user3._id);

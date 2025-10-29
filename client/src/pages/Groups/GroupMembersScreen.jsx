@@ -46,22 +46,25 @@ const GroupMembersScreen = () => {
       
       const result = await groupService.getGroupWithMembers(groupId);
       
-      if (result.success) {
+      console.log('Group data result:', result);
+      
+      if (result.success && result.data) {
         setGroup(result.data);
         setMembers(result.data.members || []);
       } else {
+        console.error('Failed to load group members:', result.message);
         alert(result.message || 'Failed to load group members');
         navigate(-1);
       }
     } catch (error) {
       console.error('Load group members error:', error);
-      alert('Failed to load group members');
+      alert('Failed to load group members. Please try again.');
       navigate(-1);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [groupId]);
+  }, [groupId, navigate]);
 
   const filterMembers = useCallback(() => {
     if (!searchQuery.trim()) {
