@@ -369,6 +369,8 @@ const ProfileScreen = () => {
         alert('Your account has been permanently deleted. Thank you for using FlavorWorld.');
         setShowDeleteModal(false);
         logout();
+        // Navigate to login page after logout
+        navigate('/login');
       } else {
         alert(result.message || 'Failed to delete account. Please try again or contact support.');
       }
