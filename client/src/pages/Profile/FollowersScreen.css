@@ -292,6 +292,11 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
+.message-btn svg,
+.remove-btn svg {
+  flex-shrink: 0;
+}
+
 .message-btn {
   background: linear-gradient(135deg, var(--secondary), #3eb8af);
   color: white;
@@ -367,7 +372,14 @@
 
   .message-btn,
   .remove-btn {
-    width: 36px;
-    height: 36px;
+    width: 44px;
+    height: 44px;
+    padding: 12px;
+  }
+
+  .message-btn svg,
+  .remove-btn svg {
+    width: 20px;
+    height: 20px;
   }
 }

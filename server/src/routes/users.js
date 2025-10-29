@@ -617,7 +617,7 @@ router.get('/suggested', async (req, res) => {
 
 // DELETE USER
 router.delete('/delete', async (req, res) => {
-  console.log('User delete endpoint called - redirecting to main endpoint');
+  console.log('User delete endpoint called - starting cascade deletion');
   
   try {
     const { userId } = req.body;
@@ -644,15 +644,173 @@ router.delete('/delete', async (req, res) => {
       });
     }
 
+    console.log('Starting cascade deletion for user:', user.fullName);
+
+    // 1. Delete all notifications sent by this user
+    const NotificationModel = (await import('../models/Notification.js')).default;
+    await NotificationModel.deleteMany({ senderId: userId });
+    console.log('Deleted notifications sent by user');
+
+    // 2. Delete all notifications received by this user
+    await NotificationModel.deleteMany({ receiverId: userId });
+    console.log('Deleted notifications received by user');
+
+    // 3. Remove user from all private chats and delete chats where user is a participant
+    const PrivateChatModel = (await import('../models/PrivateChat.js')).default;
+    const MessageModel = (await import('../models/Message.js')).default;
+    
+    const userChats = await PrivateChatModel.find({
+      'participants.userId': userId.toString()
+    });
+    
+    for (const chat of userChats) {
+      // Delete all messages in this chat
+      await MessageModel.deleteMany({ chatId: chat._id });
+      // Delete the chat
+      await PrivateChatModel.findByIdAndDelete(chat._id);
+    }
+    console.log('Deleted', userChats.length, 'private chats and their messages');
+
+    // 4. Handle group memberships
+    const GroupModel = (await import('../models/Group.js')).default;
+    // Find groups where user is a member
+    const userGroups = await GroupModel.find({
+      'members.userId': userId.toString()
+    });
+
+    for (const group of userGroups) {
+      const isCreator = group.createdBy.toString() === userId;
+      const userMember = group.members.find(m => m.userId === userId);
+      const isAdmin = userMember?.role === 'admin';
+
+      if (isCreator || (isAdmin && group.members.length === 1)) {
+        // If user is creator or last admin, delete the group
+        const GroupPostModel = (await import('../models/GroupPost.js')).default;
+        await GroupPostModel.deleteMany({ groupId: group._id });
+        await GroupModel.findByIdAndDelete(group._id);
+        console.log('Deleted group:', group.name, '(user was creator/last admin)');
+      } else if (isAdmin) {
+        // Transfer admin to another member
+        const otherMembers = group.members.filter(m => m.userId !== userId);
+        if (otherMembers.length > 0) {
+          otherMembers[0].role = 'admin';
+        }
+        group.members = group.members.filter(m => m.userId !== userId);
+        await group.save();
+        console.log('Transferred admin and removed user from group:', group.name);
+      } else {
+        // Just remove the member
+        group.members = group.members.filter(m => m.userId !== userId);
+        await group.save();
+        console.log('Removed user from group:', group.name);
+      }
+    }
+
+    // 5. Handle group chats
+    const GroupChatModel = (await import('../models/GroupChat.js')).default;
+    const GroupChatMessageModel = (await import('../models/GroupChatMessage.js')).default;
+    
+    // Find group chats where user is a participant
+    const userGroupChats = await GroupChatModel.find({
+      'participants.userId': userId.toString()
+    });
+
+    for (const groupChat of userGroupChats) {
+      const userParticipant = groupChat.participants.find(p => p.userId === userId);
+      const isAdmin = userParticipant?.role === 'admin';
+
+      if (groupChat.participants.length === 1) {
+        // Last participant - delete the chat and all messages
+        await GroupChatMessageModel.deleteMany({ groupChatId: groupChat._id });
+        await GroupChatModel.findByIdAndDelete(groupChat._id);
+        console.log('Deleted group chat and messages (last participant)');
+      } else if (isAdmin) {
+        // Transfer admin to another participant, keep messages
+        const otherParticipants = groupChat.participants.filter(p => p.userId !== userId);
+        if (otherParticipants.length > 0) {
+          otherParticipants[0].role = 'admin';
+        }
+        groupChat.participants = otherParticipants;
+        
+        // Remove from unread count map
+        if (groupChat.unreadCount) {
+          delete groupChat.unreadCount[userId];
+          groupChat.markModified('unreadCount');
+        }
+        
+        await groupChat.save();
+        console.log('Transferred admin and removed user from group chat (messages kept)');
+      } else {
+        // Just remove the participant, keep messages
+        groupChat.participants = groupChat.participants.filter(p => p.userId !== userId);
+        
+        // Remove from unread count map
+        if (groupChat.unreadCount) {
+          delete groupChat.unreadCount[userId];
+          groupChat.markModified('unreadCount');
+        }
+        
+        await groupChat.save();
+        console.log('Removed user from group chat (messages kept)');
+      }
+    }
+
+    // 6. Remove user from followers/following of other users
+    const followerIds = (user.followers || []).map(f => 
+      typeof f === 'string' ? f : f.userId
+    );
+    const followingIds = (user.following || []).map(f => 
+      typeof f === 'string' ? f : f.userId
+    );
+
+    // Remove this user from other users' following lists
+    await User.updateMany(
+      { _id: { $in: followerIds } },
+      { $pull: { following: { userId: userId } } }
+    );
+    console.log('Removed user from', followerIds.length, 'users\' following lists');
+
+    // Remove this user from other users' followers lists
+    await User.updateMany(
+      { _id: { $in: followingIds } },
+      { $pull: { followers: { userId: userId } } }
+    );
+    console.log('Removed user from', followingIds.length, 'users\' followers lists');
+
+    // 7. Delete all user's recipes
+    const RecipeModel = (await import('../models/Recipe.js')).default;
+    const deletedRecipes = await RecipeModel.deleteMany({ userId: userId });
+    console.log('Deleted', deletedRecipes.deletedCount, 'recipes');
+
+    // 8. Delete all user's group posts
+    const GroupPostModel = (await import('../models/GroupPost.js')).default;
+    const deletedGroupPosts = await GroupPostModel.deleteMany({ userId: userId });
+    console.log('Deleted', deletedGroupPosts.deletedCount, 'group posts');
+
+    // 9. Finally, delete the user
     await User.findByIdAndDelete(userId);
+    console.log('User account deleted successfully');
 
     res.status(200).json({
       success: true,
-      message: 'User deleted successfully',
-      data: { deleted: true, userId }
+      message: 'User and all related data deleted successfully',
+      data: { 
+        deleted: true, 
+        userId,
+        summary: {
+          privateChats: userChats.length,
+          groups: userGroups.length,
+          groupChats: userGroupChats.length,
+          recipes: deletedRecipes.deletedCount,
+          groupPosts: deletedGroupPosts.deletedCount,
+          followersAffected: followerIds.length,
+          followingAffected: followingIds.length
+        }
+      }
     });
 
   } catch (error) {
+    console.error('Delete failed:', error);
     res.status(500).json({
       success: false,
       message: 'Delete failed: ' + error.message

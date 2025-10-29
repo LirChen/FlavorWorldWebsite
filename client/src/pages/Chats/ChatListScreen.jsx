@@ -98,6 +98,26 @@ const ChatListScreen = () => {
     }
   };
 
+  const formatMessagePreview = (message) => {
+    if (!message || !message.content) return '';
+    
+    const content = message.content;
+    
+    // Check if it's a recipe share
+    if (content.startsWith('[RECIPE_SHARE]')) {
+      try {
+        const lines = content.split('\n');
+        const recipeTitle = lines[4]; // Title is on line 5 (index 4)
+        return `📖 Shared a recipe: ${recipeTitle}`;
+      } catch (error) {
+        return '📖 Shared a recipe';
+      }
+    }
+    
+    // Regular message - truncate if too long
+    return content.length > 50 ? content.substring(0, 50) + '...' : content;
+  };
+
   const getOtherUser = (chat) => {
     if (chat.chatType !== 'private' || !chat.participants || chat.participants.length < 2) {
       return null;
@@ -275,8 +295,8 @@ const ChatListScreen = () => {
                     <p className={`last-message ${hasUnread ? 'unread' : ''}`}>
                       {lastMessage ? (
                         lastMessage.senderName && isGroupChat ? 
-                          `${lastMessage.senderName}: ${lastMessage.content}` : 
-                          lastMessage.content
+                          `${lastMessage.senderName}: ${formatMessagePreview(lastMessage)}` : 
+                          formatMessagePreview(lastMessage)
                       ) : (
                         isGroupChat ? 'No messages yet...' : 'Start a conversation...'
                       )}

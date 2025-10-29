@@ -803,13 +803,17 @@ class GroupService {
         timeout: 15000
       });
 
-      console.log('Group with members fetched successfully');
+      console.log('Group with members fetched successfully:', response.data);
+      
+      // The endpoint returns the group data directly, not wrapped
       return {
         success: true,
-        data: response.data
+        data: response.data  // This is the enriched group object with members
       };
       
     } catch (error) {
+      console.error('Error fetching group with members:', error);
+      
       if (error.code === 'ECONNABORTED') {
         return {
           success: false,
@@ -819,7 +823,7 @@ class GroupService {
       
       return {
         success: false,
-        message: error.response?.data?.message || error.message
+        message: error.response?.data?.message || 'Failed to load group members'
       };
     }
   }

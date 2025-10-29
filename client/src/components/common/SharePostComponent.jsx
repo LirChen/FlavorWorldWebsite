@@ -137,12 +137,11 @@ ${post.category || ''}`;
       // Share to selected private chats
       for (const chatId of selectedChats) {
         try {
-          // Send the message with post preview metadata
-          const result = await chatService.sendMessage(
+          // Use HTTP endpoint for private messages (more reliable for sharing)
+          const result = await chatService.sendPrivateChatMessage(
             chatId,
             shareMessage,
-            'text', // Changed from 'recipe_share' to 'text'
-            'private'
+            'text'
           );
           
           if (result.success) {

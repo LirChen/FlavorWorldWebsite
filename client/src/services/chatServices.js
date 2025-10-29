@@ -751,6 +751,35 @@ class ChatService {
     }
   }
 
+  async sendPrivateChatMessage(chatId, content, messageType = 'text') {
+    try {
+      console.log(' Sending message to private chat via HTTP:', chatId, 'Type:', messageType);
+      
+      const currentUserId = this.getCurrentUserId();
+      
+      const response = await apiClient.post(`/chats/${chatId}/messages`, {
+        content,
+        messageType,
+      }, {
+        headers: { 'x-user-id': currentUserId }
+      });
+
+      console.log(' Private message sent successfully via HTTP');
+      
+      this.messageListeners.forEach(callback => {
+        callback(response.data);
+      });
+      
+      return { success: true, data: response.data };
+
+    } catch (error) {
+      return { 
+        success: false, 
+        message: error.response?.data?.message || 'Failed to send message' 
+      };
+    }
+  }
+
   async markGroupChatAsRead(chatId) {
     try {
       const currentUserId = this.getCurrentUserId();
