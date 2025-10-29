@@ -352,12 +352,17 @@ router.post('/:userId/follow', async (req, res) => {
 
     if (!userToFollow.followers) userToFollow.followers = [];
     if (!follower.following) follower.following = [];
-
-    // Check if already following (check both old string format and new object format)
-    const isAlreadyFollowing = userToFollow.followers.some(f => 
-      (typeof f === 'string' && f === followerId) || 
-      (typeof f === 'object' && f.userId === followerId)
+    
+    // Migrate old string format to new object format if needed
+    userToFollow.followers = userToFollow.followers.map(f => 
+      typeof f === 'string' ? { userId: f, followedAt: new Date() } : f
     );
+    follower.following = follower.following.map(f => 
+      typeof f === 'string' ? { userId: f, followedAt: new Date() } : f
+    );
+
+    // Check if already following (check object format)
+    const isAlreadyFollowing = userToFollow.followers.some(f => f.userId === followerId);
     
     if (isAlreadyFollowing) {
       return res.status(400).json({ message: 'Already following this user' });
@@ -422,26 +427,25 @@ router.delete('/:userId/follow', async (req, res) => {
 
     if (!userToUnfollow.followers) userToUnfollow.followers = [];
     if (!follower.following) follower.following = [];
-
-    // Check if following (check both old string format and new object format)
-    const isFollowing = userToUnfollow.followers.some(f => 
-      (typeof f === 'string' && f === followerId) || 
-      (typeof f === 'object' && f.userId === followerId)
+    
+    // Migrate old string format to new object format if needed
+    userToUnfollow.followers = userToUnfollow.followers.map(f => 
+      typeof f === 'string' ? { userId: f, followedAt: new Date() } : f
     );
+    follower.following = follower.following.map(f => 
+      typeof f === 'string' ? { userId: f, followedAt: new Date() } : f
+    );
+
+    // Check if following (check object format)
+    const isFollowing = userToUnfollow.followers.some(f => f.userId === followerId);
     
     if (!isFollowing) {
       return res.status(400).json({ message: 'Not following this user' });
     }
 
-    // Remove from both arrays (handle both formats)
-    userToUnfollow.followers = userToUnfollow.followers.filter(f => 
-      (typeof f === 'string' && f !== followerId) || 
-      (typeof f === 'object' && f.userId !== followerId)
-    );
-    follower.following = follower.following.filter(f => 
-      (typeof f === 'string' && f !== userId) || 
-      (typeof f === 'object' && f.userId !== userId)
-    );
+    // Remove from both arrays
+    userToUnfollow.followers = userToUnfollow.followers.filter(f => f.userId !== followerId);
+    follower.following = follower.following.filter(f => f.userId !== userId);
 
     await Promise.all([
       userToUnfollow.save(),
@@ -478,10 +482,18 @@ router.get('/:userId/follow-status/:viewerId', async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
+    // Migrate old format if needed
+    if (user.followers && user.followers.length > 0 && typeof user.followers[0] === 'string') {
+      user.followers = user.followers.map(f => ({ userId: f, followedAt: new Date() }));
+    }
+    if (user.following && user.following.length > 0 && typeof user.following[0] === 'string') {
+      user.following = user.following.map(f => ({ userId: f, followedAt: new Date() }));
+    }
+
     const followersCount = user.followers ? user.followers.length : 0;
     const followingCount = user.following ? user.following.length : 0;
     
-    // Check if viewerId is in followers array (handle both formats)
+    // Check if viewerId is in followers array
     const isFollowing = viewerId && user.followers ? user.followers.some(f => 
       (typeof f === 'string' && f === viewerId) || 
       (typeof f === 'object' && f.userId === viewerId)
