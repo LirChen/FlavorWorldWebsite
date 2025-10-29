@@ -21,6 +21,7 @@ import GroupSettingsScreen from '../pages/Groups/GroupSettingsScreen';
 import GroupMembersScreen from '../pages/Groups/GroupMembersScreen';
 import HomeScreen from '../pages/Home/HomeScreen';
 import SavedRecipesScreen from '../pages/Profile/SavedRecipesScreen';
+import FollowersScreen from '../pages/Profile/FollowersScreen';
 
 export default function HomeNavigator() {
   return (
@@ -44,6 +45,7 @@ export default function HomeNavigator() {
       <Route path="/profile" element={<ProfileScreen />} />
       <Route path="/profile/edit" element={<EditProfileScreen />} />
       <Route path="/profile/statistics" element={<UserStatisticsScreen />} />
+      <Route path="/profile/followers" element={<FollowersScreen />} />
       <Route path="/saved" element={<SavedRecipesScreen />} />
 
       {/* Chat Routes */}

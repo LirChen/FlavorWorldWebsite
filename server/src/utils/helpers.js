@@ -5,7 +5,7 @@ const generateResetCode = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
-const createNotification = async (notificationData) => {
+const createNotification = async (notificationData, io) => {
   try {
     if (!isMongoConnected()) {
       console.log('Database not connected, skipping notification');
@@ -66,6 +66,19 @@ const createNotification = async (notificationData) => {
     await notification.save();
     
     console.log('Notification created:', notification.type, 'for user:', toUserId);
+    
+    // Emit socket event if io is available
+    if (io) {
+      const userSockets = await io.in(toUserId.toString()).fetchSockets();
+      if (userSockets.length > 0) {
+        io.to(toUserId.toString()).emit('new_notification', {
+          notification: notification.toObject(),
+          unreadCount: await Notification.countDocuments({ toUserId, read: false })
+        });
+        console.log('Emitted new_notification event to user:', toUserId);
+      }
+    }
+    
     return { success: true, data: notification };
 
   } catch (error) {

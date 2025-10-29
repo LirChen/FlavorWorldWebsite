@@ -2,7 +2,7 @@
 
 .followers-screen {
   min-height: 100vh;
-  background: var(--background);
+  background: linear-gradient(135deg, #FFF8F0 0%, #F7F0E6 100%);
   display: flex;
   flex-direction: column;
 }
@@ -18,43 +18,49 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  box-shadow: var(--shadow);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
 }
 
 .followers-header h1 {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--text);
+  font-size: 20px;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   margin: 0;
   flex: 1;
   text-align: center;
 }
 
 .back-btn {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
-  background: var(--background);
-  border: none;
+  background: linear-gradient(135deg, #FFF8F0 0%, #F7F0E6 100%);
+  border: 1px solid rgba(245, 166, 35, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background 0.2s;
-  color: var(--accent);
+  transition: all 0.3s ease;
+  color: var(--primary);
 }
 
 .back-btn svg {
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
 }
 
 .back-btn:hover {
-  background: var(--hover);
+  background: var(--primary);
+  color: white;
+  transform: translateX(-3px);
+  box-shadow: 0 4px 12px rgba(245, 166, 35, 0.25);
 }
 
 .header-placeholder {
-  width: 40px;
+  width: 44px;
 }
 
 /* Loading */
@@ -88,6 +94,48 @@
   background: var(--white);
   padding: 12px 16px;
   border-bottom: 1px solid var(--border);
+}
+
+/* Tabs */
+.tabs-container {
+  display: flex;
+  background: var(--white);
+  border-bottom: 2px solid var(--border);
+  padding: 0 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.tab-button {
+  flex: 1;
+  padding: 16px;
+  border: none;
+  background: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-light);
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  transition: all 0.3s ease;
+}
+
+.tab-button.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+  background: rgba(245, 166, 35, 0.05);
+}
+
+.tab-button:hover {
+  background: rgba(245, 166, 35, 0.08);
+  color: var(--primary);
+}
+
+.tab-button svg {
+  width: 18px;
+  height: 18px;
 }
 
 .search-bar {
@@ -193,35 +241,38 @@
 
 .message-btn,
 .remove-btn {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
+  padding: 10px 20px;
+  border-radius: 25px;
   border: none;
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 6px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s ease;
+  font-size: 14px;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .message-btn {
-  background: var(--secondary);
+  background: linear-gradient(135deg, var(--secondary), #3eb8af);
   color: white;
 }
 
 .message-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(78, 205, 196, 0.3);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(78, 205, 196, 0.4);
 }
 
 .remove-btn {
-  background: var(--danger);
+  background: linear-gradient(135deg, var(--danger), #c0392b);
   color: white;
 }
 
 .remove-btn:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(231, 76, 60, 0.3);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(231, 76, 60, 0.4);
 }
 
 .remove-btn:disabled {

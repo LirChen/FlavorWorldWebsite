@@ -47,6 +47,12 @@ app.use((req, res, next) => {
 });app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
+// Make io available in routes
+app.use((req, res, next) => {
+  req.io = io;
+  next();
+});
+
 // Only log in non-test environments
 if (process.env.NODE_ENV !== 'test') {
   app.use((req, res, next) => {

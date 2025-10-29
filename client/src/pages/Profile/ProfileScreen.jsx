@@ -54,7 +54,8 @@ const ProfileScreen = () => {
   const [stats, setStats] = useState({
     postsCount: 0,
     likesCount: 0,
-    followersCount: 0
+    followersCount: 0,
+    followingCount: 0
   });
 
   const [isFollowing, setIsFollowing] = useState(false);
@@ -95,7 +96,8 @@ const ProfileScreen = () => {
                 setIsFollowing(followResult.data.isFollowing);
                 setStats(prev => ({
                   ...prev,
-                  followersCount: followResult.data.followersCount
+                  followersCount: followResult.data.followersCount || 0,
+                  followingCount: userResult.data?.following?.length || 0
                 }));
               }
             } catch (error) {
@@ -158,6 +160,10 @@ const ProfileScreen = () => {
                     ...post,
                     groupName: group.name,
                     groupId: group._id,
+                    group: {
+                      _id: group._id,
+                      name: group.name
+                    },
                     postSource: 'group'
                   }));
                   
@@ -186,6 +192,7 @@ const ProfileScreen = () => {
           const statsData = statisticsService.processRealUserData(sortedPosts, userId);
           
           let followersCount = 0;
+          let followingCount = 0;
           try {
             const followersResult = await statisticsService.getFollowersGrowth(userId);
             if (canceled) return;
@@ -193,15 +200,21 @@ const ProfileScreen = () => {
             if (followersResult.success && followersResult.data) {
               followersCount = followersResult.currentFollowersCount || 0;
             }
+            
+            // Get following count
+            const userProfile = profileUser || currentUser;
+            followingCount = userProfile?.following?.length || 0;
           } catch (followersError) {
             followersCount = 0;
+            followingCount = 0;
           }
 
           if (canceled) return;
           setStats({
             postsCount: statsData.totalPosts,
             likesCount: statsData.totalLikes,
-            followersCount: followersCount
+            followersCount: followersCount,
+            followingCount: followingCount
           });
 
         } catch (error) {
@@ -239,17 +252,24 @@ const ProfileScreen = () => {
     
     setIsFollowLoading(true);
     try {
-      const result = await chatService.toggleFollow(
-        userId,
-        currentUser.id || currentUser._id,
-        isFollowing
-      );
+      const currentUserId = currentUser.id || currentUser._id;
+      let result;
+      
+      if (isFollowing) {
+        // Unfollow
+        result = await followService.unfollowUser(userId, currentUserId);
+      } else {
+        // Follow
+        result = await followService.followUser(userId, currentUserId);
+      }
       
       if (result.success) {
         setIsFollowing(!isFollowing);
+        
+        // Update the followers count with the value from server
         setStats(prev => ({
           ...prev,
-          followersCount: result.data.followersCount
+          followersCount: result.data.followersCount || (isFollowing ? prev.followersCount - 1 : prev.followersCount + 1)
         }));
         
         alert(isFollowing ? 'Unfollowed successfully' : 'Following successfully!');
@@ -469,10 +489,17 @@ const ProfileScreen = () => {
             </div>
             <button 
               className="stat-item"
-              onClick={() => navigate(`/profile/followers?userId=${userId}`)}
+              onClick={() => navigate(`/profile/followers?userId=${userId}&tab=followers`)}
             >
               <strong>{stats.followersCount}</strong>
               <span>Followers</span>
+            </button>
+            <button 
+              className="stat-item"
+              onClick={() => navigate(`/profile/followers?userId=${userId}&tab=following`)}
+            >
+              <strong>{stats.followingCount}</strong>
+              <span>Following</span>
             </button>
           </div>
 

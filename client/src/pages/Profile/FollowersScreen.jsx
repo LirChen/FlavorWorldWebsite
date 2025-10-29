@@ -6,6 +6,8 @@ import {
   X,
   Loader2,
   UserMinus,
+  UserPlus,
+  Users,
   MessageCircle
 } from 'lucide-react';
 import './FollowersScreen.css';
@@ -18,10 +20,13 @@ const FollowersScreen = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const userId = searchParams.get('userId');
+  const tabParam = searchParams.get('tab') || 'followers';
   const { currentUser } = useAuth();
   
+  const [activeTab, setActiveTab] = useState(tabParam);
   const [followers, setFollowers] = useState([]);
-  const [filteredFollowers, setFilteredFollowers] = useState([]);
+  const [following, setFollowing] = useState([]);
+  const [filteredList, setFilteredList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [removingUserId, setRemovingUserId] = useState(null);
@@ -29,51 +34,65 @@ const FollowersScreen = () => {
   const isOwnProfile = !userId || userId === (currentUser?.id || currentUser?._id);
 
   useEffect(() => {
-    loadFollowers();
-  }, [userId]);
+    setActiveTab(tabParam);
+  }, [tabParam]);
 
   useEffect(() => {
-    filterFollowers();
-  }, [searchQuery, followers]);
+    loadData();
+  }, [userId, activeTab]);
 
-  const loadFollowers = async () => {
+  useEffect(() => {
+    filterList();
+  }, [searchQuery, followers, following, activeTab]);
+
+  const loadData = async () => {
     try {
       setLoading(true);
       const targetUserId = userId || currentUser?.id || currentUser?._id;
       
-      const result = await followService.getFollowers(targetUserId);
-      
-      if (result.success) {
-        setFollowers(result.data || []);
+      if (activeTab === 'followers') {
+        const result = await followService.getFollowers(targetUserId);
+        if (result.success) {
+          setFollowers(result.data || []);
+        } else {
+          alert(result.message || 'Failed to load followers');
+        }
       } else {
-        alert(result.message || 'Failed to load followers');
+        const result = await followService.getFollowing(targetUserId);
+        if (result.success) {
+          setFollowing(result.data || []);
+        } else {
+          alert(result.message || 'Failed to load following');
+        }
       }
     } catch (error) {
-      console.error('Load followers error:', error);
-      alert('Failed to load followers');
+      console.error('Load data error:', error);
+      alert(`Failed to load ${activeTab}`);
     } finally {
       setLoading(false);
     }
   };
 
-  const filterFollowers = () => {
+  const filterList = () => {
+    const currentList = activeTab === 'followers' ? followers : following;
+    
     if (!searchQuery.trim()) {
-      setFilteredFollowers(followers);
+      setFilteredList(currentList);
       return;
     }
 
     const query = searchQuery.toLowerCase();
-    const filtered = followers.filter(follower => {
-      const name = (follower.name || follower.fullName || '').toLowerCase();
-      const bio = (follower.bio || '').toLowerCase();
+    const filtered = currentList.filter(user => {
+      const name = (user.name || user.fullName || '').toLowerCase();
+      const bio = (user.bio || '').toLowerCase();
       return name.includes(query) || bio.includes(query);
     });
 
-    setFilteredFollowers(filtered);
+    setFilteredList(filtered);
   };
 
   const handleRemoveFollower = async (followerId, followerName) => {
-    if (!isOwnProfile) return;
+    if (!isOwnProfile || activeTab !== 'followers') return;
 
     if (window.confirm(`Remove ${followerName} from your followers?`)) {
       setRemovingUserId(followerId);
@@ -85,7 +104,7 @@ const FollowersScreen = () => {
         
         if (result.success) {
           alert(`${followerName} has been removed from your followers`);
-          loadFollowers();
+          loadData();
         } else {
           alert(result.message || 'Failed to remove follower');
         }
@@ -128,13 +147,13 @@ const FollowersScreen = () => {
           <button className="back-btn" onClick={() => navigate(-1)}>
             <ArrowLeft size={24} />
           </button>
-          <h1>Followers</h1>
+          <h1>{activeTab === 'followers' ? 'Followers' : 'Following'}</h1>
           <div className="header-placeholder" />
         </header>
         
         <div className="loading-container">
           <Loader2 className="spinner" size={40} />
-          <p>Loading followers...</p>
+          <p>Loading {activeTab}...</p>
         </div>
       </div>
     );
@@ -147,9 +166,33 @@ const FollowersScreen = () => {
         <button className="back-btn" onClick={() => navigate(-1)}>
           <ArrowLeft size={24} />
         </button>
-        <h1>Followers ({filteredFollowers.length})</h1>
+        <h1>{activeTab === 'followers' ? 'Followers' : 'Following'} ({filteredList.length})</h1>
         <div className="header-placeholder" />
       </header>
+
+      {/* Tabs */}
+      <div className="tabs-container">
+        <button 
+          className={`tab-button ${activeTab === 'followers' ? 'active' : ''}`}
+          onClick={() => {
+            setActiveTab('followers');
+            navigate(`/profile/followers?userId=${userId || ''}&tab=followers`);
+          }}
+        >
+          <Users size={18} />
+          <span>Followers</span>
+        </button>
+        <button 
+          className={`tab-button ${activeTab === 'following' ? 'active' : ''}`}
+          onClick={() => {
+            setActiveTab('following');
+            navigate(`/profile/followers?userId=${userId || ''}&tab=following`);
+          }}
+        >
+          <UserPlus size={18} />
+          <span>Following</span>
+        </button>
+      </div>
 
       {/* Search */}
       <div className="search-container">
@@ -171,45 +214,45 @@ const FollowersScreen = () => {
 
       {/* Followers List */}
       <div className="followers-list">
-        {filteredFollowers.length === 0 ? (
+        {filteredList.length === 0 ? (
           <div className="empty-state">
             <div className="empty-icon">👥</div>
-            <h3>{searchQuery ? 'No followers found' : 'No followers yet'}</h3>
+            <h3>{searchQuery ? `No ${activeTab} found` : `No ${activeTab} yet`}</h3>
             <p>
               {searchQuery 
-                ? `No followers match "${searchQuery}"`
+                ? `No ${activeTab} match "${searchQuery}"`
                 : isOwnProfile 
-                  ? 'When people follow you, they will appear here'
-                  : 'This user has no followers yet'
+                  ? `When you ${activeTab === 'followers' ? 'get followers' : 'follow people'}, they will appear here`
+                  : `This user has no ${activeTab} yet`
               }
             </p>
           </div>
         ) : (
-          filteredFollowers.map((follower) => {
-            const followerId = follower._id || follower.id;
-            const followerName = follower.name || follower.fullName || 'Unknown User';
-            const followerBio = follower.bio || '';
-            const isCurrentUser = followerId === (currentUser?.id || currentUser?._id);
+          filteredList.map((user) => {
+            const userId = user._id || user.id;
+            const userName = user.name || user.fullName || 'Unknown User';
+            const userBio = user.bio || '';
+            const isCurrentUser = userId === (currentUser?.id || currentUser?._id);
 
             return (
-              <div key={followerId} className="follower-item">
+              <div key={userId} className="follower-item">
                 <div 
                   className="follower-main"
-                  onClick={() => !isCurrentUser && navigate(`/profile?userId=${followerId}`)}
+                  onClick={() => !isCurrentUser && navigate(`/profile?userId=${userId}`)}
                   style={{ cursor: isCurrentUser ? 'default' : 'pointer' }}
                 >
                   <UserAvatar
-                    uri={follower.avatar || follower.profileImage}
-                    name={followerName}
+                    uri={user.avatar || user.profileImage}
+                    name={userName}
                     size={50}
                   />
                   
                   <div className="follower-info">
                     <h3>
-                      {followerName}
+                      {userName}
                       {isCurrentUser && ' (You)'}
                     </h3>
-                    {followerBio && <p className="follower-bio">{followerBio}</p>}
+                    {userBio && <p className="follower-bio">{userBio}</p>}
                   </div>
                 </div>
 
@@ -217,20 +260,20 @@ const FollowersScreen = () => {
                   <div className="follower-actions">
                     <button
                       className="message-btn"
-                      onClick={() => handleStartChat(follower)}
+                      onClick={() => handleStartChat(user)}
                       title="Send Message"
                     >
                       <MessageCircle size={18} />
                     </button>
                     
-                    {isOwnProfile && (
+                    {isOwnProfile && activeTab === 'followers' && (
                       <button
                         className="remove-btn"
-                        onClick={() => handleRemoveFollower(followerId, followerName)}
-                        disabled={removingUserId === followerId}
+                        onClick={() => handleRemoveFollower(userId, userName)}
+                        disabled={removingUserId === userId}
                         title="Remove Follower"
                       >
-                        {removingUserId === followerId ? (
+                        {removingUserId === userId ? (
                           <Loader2 className="spinner" size={18} />
                         ) : (
                           <UserMinus size={18} />

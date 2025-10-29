@@ -280,14 +280,18 @@ const PostComponent = ({
     return;
   }
   
+  // Optimistic update - update UI immediately
+  const previousSavedState = isSaved;
+  setIsSaved(!isSaved);
+  
   try {
-    if (isSaved) {
+    if (previousSavedState) {
       console.log('Attempting to unsave...');
       const result = await recipeService.unsaveRecipe(postId);
       console.log('Unsave result:', result);
-      if (result.success) {
-        setIsSaved(false);
-      } else {
+      if (!result.success) {
+        // Revert on failure
+        setIsSaved(previousSavedState);
         console.error('Unsave failed:', result);
         alert(result.message || 'Failed to unsave recipe');
       }
@@ -295,14 +299,16 @@ const PostComponent = ({
       console.log('Attempting to save...');
       const result = await recipeService.saveRecipe(postId);
       console.log('Save result:', result);
-      if (result.success) {
-        setIsSaved(true);
-      } else {
+      if (!result.success) {
+        // Revert on failure
+        setIsSaved(previousSavedState);
         console.error('Save failed:', result);
         alert(result.message || 'Failed to save recipe');
       }
     }
   } catch (error) {
+    // Revert on error
+    setIsSaved(previousSavedState);
     console.error('Error saving post:', error);
     alert('An error occurred. Please try again.');
   }
@@ -345,6 +351,12 @@ const PostComponent = ({
           <div className="post-author-info">
             <h4>{safePost.userName || 'Anonymous'}</h4>
             <span>{formatDate(safePost.createdAt)}</span>
+            {/* Show group badge if this is a group post */}
+            {(safePost.groupId || safePost.group) && (
+              <span className="group-badge-inline">
+                in {safePost.group?.name || safePost.groupName || 'Group'}
+              </span>
+            )}
           </div>
         </div>
 
@@ -407,10 +419,7 @@ const PostComponent = ({
 
         {/* Show video if mediaType is video or video field exists */}
         {(safePost.mediaType === 'video' || safePost.video) && (
-          <div className="post-video-container" onClick={(e) => {
-            e.stopPropagation();
-            setShowFullRecipe(true);
-          }}>
+          <div className="post-video-container">
             <video src={safePost.video} controls />
           </div>
         )}

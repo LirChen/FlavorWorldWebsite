@@ -192,6 +192,10 @@ const HomeScreen = () => {
           createdAt: post.createdAt || new Date().toISOString(),
           postSource: post.groupId ? 'group' : 'personal',
           groupName: post.groupName || null,
+          group: post.groupId ? {
+            _id: post.groupId,
+            name: post.groupName || 'Group'
+          } : null,
         }));
         
         console.log('Setting posts in state:', formattedPosts.length);

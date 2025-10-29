@@ -332,7 +332,8 @@
 }
 
 .privacy-badge:not(.private) {
-  color: var(--secondary);
+  background: linear-gradient(135deg, var(--secondary) 0%, #3ac4b8 100%);
+  color: white;
 }
 
 .group-info {

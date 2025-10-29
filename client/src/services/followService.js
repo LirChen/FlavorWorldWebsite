@@ -76,20 +76,17 @@ export const followService = {
     try {
       console.log('Getting followers for user:', userId);
       
-      // Since the backend doesn't have a dedicated endpoint, we get it from the user profile
-      const response = await api.get(`/users/${userId}/follow-status/${userId}`);
+      const response = await api.get(`/users/${userId}/followers`);
       
-      // This will return followersCount, but not the actual list
-      // You'll need to add an endpoint to get the actual followers list
       return { 
         success: true, 
-        data: []  // Empty for now until backend endpoint is created
+        data: response.data || []
       };
     } catch (error) {
       console.error('Get followers error:', error);
       return {
         success: false,
-        message: error.message,
+        message: error.response?.data?.message || error.message,
         data: []
       };
     }
@@ -99,16 +96,17 @@ export const followService = {
     try {
       console.log('Getting following for user:', userId);
       
-      // Since the backend doesn't have a dedicated endpoint
+      const response = await api.get(`/users/${userId}/following`);
+      
       return { 
         success: true, 
-        data: []  // Empty for now until backend endpoint is created
+        data: response.data || []
       };
     } catch (error) {
       console.error('Get following error:', error);
-      return {
+      return{
         success: false,
-        message: error.message,
+        message: error.response?.data?.message || error.message,
         data: []
       };
     }

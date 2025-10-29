@@ -482,7 +482,7 @@ router.post('/:groupId/posts/:postId/like', async (req, res) => {
           name: liker?.fullName || 'Someone',
           avatar: liker?.avatar || null
         }
-      });
+      }, req.io);
       
       console.log('Group post like notification created');
     }
@@ -632,7 +632,7 @@ router.post('/:groupId/posts/:postId/comments', async (req, res) => {
           name: userName || user?.fullName || 'Someone',
           avatar: userAvatar
         }
-      });
+      }, req.io);
       
       console.log('Group post comment notification created');
     }

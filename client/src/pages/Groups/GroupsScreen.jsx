@@ -35,6 +35,8 @@ const GroupsScreen = () => {
 
   const loadGroups = async () => {
     setLoading(true);
+    let errorMessage = null;
+    
     try {
       const result = await groupService.getAllGroups(currentUser?.id || currentUser?._id);
       
@@ -56,11 +58,12 @@ const GroupsScreen = () => {
         
         setGroups(discoverGroups);
       } else {
-        alert(result.message || 'Failed to load groups');
+        console.error('Failed to load groups:', result.message);
+        // Don't show alert for network/timeout errors
       }
     } catch (error) {
       console.error('Load groups error:', error);
-      alert('Failed to load groups');
+      // Don't show alert for network/timeout errors
     } finally {
       setLoading(false);
       setRefreshing(false);

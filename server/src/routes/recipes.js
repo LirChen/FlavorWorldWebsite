@@ -414,7 +414,7 @@ router.post('/:id/like', authenticateToken, async (req, res) => {
           name: liker?.fullName || 'Someone',
           avatar: liker?.avatar || null
         }
-      });
+      }, req.io);
       
       console.log('Like notification created');
     }
@@ -512,7 +512,7 @@ router.post('/:id/comments', authenticateToken, async (req, res) => {
           name: userName,
           avatar: userAvatar
         }
-      });
+      }, req.io);
       
       console.log('Comment notification created');
     }
