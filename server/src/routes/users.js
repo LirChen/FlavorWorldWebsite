@@ -353,12 +353,19 @@ router.post('/:userId/follow', async (req, res) => {
     if (!userToFollow.followers) userToFollow.followers = [];
     if (!follower.following) follower.following = [];
 
-    if (userToFollow.followers.includes(followerId)) {
+    // Check if already following (check both old string format and new object format)
+    const isAlreadyFollowing = userToFollow.followers.some(f => 
+      (typeof f === 'string' && f === followerId) || 
+      (typeof f === 'object' && f.userId === followerId)
+    );
+    
+    if (isAlreadyFollowing) {
       return res.status(400).json({ message: 'Already following this user' });
     }
 
-    userToFollow.followers.push(followerId);
-    follower.following.push(userId);
+    // Add as object with timestamp
+    userToFollow.followers.push({ userId: followerId, followedAt: new Date() });
+    follower.following.push({ userId: userId, followedAt: new Date() });
 
     await Promise.all([
       userToFollow.save(),
@@ -413,12 +420,28 @@ router.delete('/:userId/follow', async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    if (!userToUnfollow.followers || !userToUnfollow.followers.includes(followerId)) {
+    if (!userToUnfollow.followers) userToUnfollow.followers = [];
+    if (!follower.following) follower.following = [];
+
+    // Check if following (check both old string format and new object format)
+    const isFollowing = userToUnfollow.followers.some(f => 
+      (typeof f === 'string' && f === followerId) || 
+      (typeof f === 'object' && f.userId === followerId)
+    );
+    
+    if (!isFollowing) {
       return res.status(400).json({ message: 'Not following this user' });
     }
 
-    userToUnfollow.followers = userToUnfollow.followers.filter(id => id !== followerId);
-    follower.following = follower.following ? follower.following.filter(id => id !== userId) : [];
+    // Remove from both arrays (handle both formats)
+    userToUnfollow.followers = userToUnfollow.followers.filter(f => 
+      (typeof f === 'string' && f !== followerId) || 
+      (typeof f === 'object' && f.userId !== followerId)
+    );
+    follower.following = follower.following.filter(f => 
+      (typeof f === 'string' && f !== userId) || 
+      (typeof f === 'object' && f.userId !== userId)
+    );
 
     await Promise.all([
       userToUnfollow.save(),
@@ -457,7 +480,12 @@ router.get('/:userId/follow-status/:viewerId', async (req, res) => {
 
     const followersCount = user.followers ? user.followers.length : 0;
     const followingCount = user.following ? user.following.length : 0;
-    const isFollowing = viewerId && user.followers ? user.followers.includes(viewerId) : false;
+    
+    // Check if viewerId is in followers array (handle both formats)
+    const isFollowing = viewerId && user.followers ? user.followers.some(f => 
+      (typeof f === 'string' && f === viewerId) || 
+      (typeof f === 'object' && f.userId === viewerId)
+    ) : false;
 
     res.json({
       followersCount,
@@ -633,14 +661,31 @@ router.get('/:userId/followers', async (req, res) => {
       return res.status(400).json({ message: 'Invalid user ID' });
     }
 
-    const user = await User.findById(userId).populate('followers', 'fullName email avatar bio');
+    const user = await User.findById(userId);
     
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    const followers = user.followers || [];
-    const formattedFollowers = followers.map(follower => ({
+    const followerIds = (user.followers || []).map(f => 
+      typeof f === 'string' ? f : f.userId
+    );
+    
+    // Create a map of userId to followedAt timestamp
+    const followerTimestamps = {};
+    (user.followers || []).forEach(f => {
+      if (typeof f === 'object' && f.userId) {
+        followerTimestamps[f.userId] = f.followedAt;
+      }
+    });
+    
+    // Manually fetch follower users since followers is an array of strings/objects, not ObjectIds
+    const followerUsers = await User.find(
+      { _id: { $in: followerIds } },
+      'fullName email avatar bio'
+    );
+
+    const formattedFollowers = followerUsers.map(follower => ({
       _id: follower._id,
       id: follower._id,
       name: follower.fullName,
@@ -648,7 +693,8 @@ router.get('/:userId/followers', async (req, res) => {
       email: follower.email,
       avatar: follower.avatar,
       profileImage: follower.avatar,
-      bio: follower.bio || ''
+      bio: follower.bio || '',
+      followedAt: followerTimestamps[follower._id.toString()] || null
     }));
 
     res.json(formattedFollowers);
@@ -671,14 +717,31 @@ router.get('/:userId/following', async (req, res) => {
       return res.status(400).json({ message: 'Invalid user ID' });
     }
 
-    const user = await User.findById(userId).populate('following', 'fullName email avatar bio');
+    const user = await User.findById(userId);
     
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    const following = user.following || [];
-    const formattedFollowing = following.map(user => ({
+    const followingIds = (user.following || []).map(f => 
+      typeof f === 'string' ? f : f.userId
+    );
+    
+    // Create a map of userId to followedAt timestamp
+    const followingTimestamps = {};
+    (user.following || []).forEach(f => {
+      if (typeof f === 'object' && f.userId) {
+        followingTimestamps[f.userId] = f.followedAt;
+      }
+    });
+    
+    // Manually fetch following users since following is an array of strings/objects, not ObjectIds
+    const followingUsers = await User.find(
+      { _id: { $in: followingIds } },
+      'fullName email avatar bio'
+    );
+
+    const formattedFollowing = followingUsers.map(user => ({
       _id: user._id,
       id: user._id,
       name: user.fullName,
@@ -686,7 +749,8 @@ router.get('/:userId/following', async (req, res) => {
       email: user.email,
       avatar: user.avatar,
       profileImage: user.avatar,
-      bio: user.bio || ''
+      bio: user.bio || '',
+      followedAt: followingTimestamps[user._id.toString()] || null
     }));
 
     res.json(formattedFollowing);
