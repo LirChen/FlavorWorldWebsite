@@ -42,7 +42,9 @@ const connectDB = async () => {
 
     await mongoose.connect(MONGODB_URI, {
       serverSelectionTimeoutMS: 5000,
-      socketTimeoutMS: 45000,
+      socketTimeoutMS: 300000, // Increased to 300 seconds (5 minutes) for large media files
+      maxPoolSize: 10,
+      minPoolSize: 2,
     });
 
     isConnected = true;

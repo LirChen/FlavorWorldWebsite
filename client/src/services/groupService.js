@@ -112,51 +112,6 @@ class GroupService {
     }
   }
 
-  async getUserGroups(userId) {
-    try {
-      console.log('Fetching user groups for:', userId);
-      
-      if (!userId) {
-        return {
-          success: false,
-          message: 'User ID is required'
-        };
-      }
-      
-      const response = await this.axiosInstance.get('/groups', { 
-        params: { userId },
-        timeout: 15000
-      });
-
-      // Filter to only groups where user is a member
-      const userGroups = response.data.filter(group => 
-        this.isMember(group, userId)
-      );
-
-      console.log(`User is member of ${userGroups.length} groups`);
-      return {
-        success: true,
-        data: userGroups
-      };
-      
-    } catch (error) {
-      console.error('Get user groups error:', error);
-      
-      if (error.code === 'ECONNABORTED') {
-        return {
-          success: false,
-          message: 'Connection timeout - please check your network and try again'
-        };
-      }
-      
-      return {
-        success: false,
-        message: error.response?.data?.message || error.message,
-        data: []
-      };
-    }
-  }
-
   async searchGroups(query, userId = null) {
     try {
       console.log('Searching groups');
@@ -218,7 +173,9 @@ class GroupService {
     try {
       console.log('Fetching group details');
       
-      const response = await this.axiosInstance.get(`/groups/${groupId}`);
+      const response = await this.axiosInstance.get(`/groups/${groupId}`, {
+        timeout: 15000
+      });
 
       console.log('Group details fetched successfully');
       return {
@@ -227,6 +184,13 @@ class GroupService {
       };
       
     } catch (error) {
+      if (error.code === 'ECONNABORTED') {
+        return {
+          success: false,
+          message: 'Connection timeout - please check your network'
+        };
+      }
+      
       return {
         success: false,
         message: error.response?.data?.message || error.message
@@ -830,32 +794,14 @@ class GroupService {
       };
     }
   }
-////
 
-async transferOwnership(groupId, currentOwnerId, newOwnerId) {
-  try {
-    const response = await this.axiosInstance.put(
-      `/groups/${groupId}/transfer-ownership`,
-      { currentOwnerId, newOwnerId }
-    );
-    
-    return {
-      success: true,
-      data: response.data
-    };
-  } catch (error) {
-    console.error('Transfer ownership error:', error);
-    return {
-      success: false,
-      message: error.response?.data?.message || error.message || 'Network error'
-    };
-  }
-}
   async getGroupWithMembers(groupId) {
     try {
       console.log('Fetching group with full member details');
       
-      const response = await this.axiosInstance.get(`/groups/${groupId}/members`);
+      const response = await this.axiosInstance.get(`/groups/${groupId}/members`, {
+        timeout: 15000
+      });
 
       console.log('Group with members fetched successfully');
       return {
@@ -864,6 +810,13 @@ async transferOwnership(groupId, currentOwnerId, newOwnerId) {
       };
       
     } catch (error) {
+      if (error.code === 'ECONNABORTED') {
+        return {
+          success: false,
+          message: 'Connection timeout - please check your network'
+        };
+      }
+      
       return {
         success: false,
         message: error.response?.data?.message || error.message

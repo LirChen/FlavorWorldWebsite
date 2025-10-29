@@ -50,6 +50,12 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
+.back-btn svg,
+.create-btn svg {
+  width: 24px;
+  height: 24px;
+}
+
 .back-btn:hover,
 .create-btn:hover {
   transform: translateY(-2px) scale(1.05);
@@ -326,7 +332,8 @@
 }
 
 .privacy-badge:not(.private) {
-  color: var(--secondary);
+  background: linear-gradient(135deg, var(--secondary) 0%, #3ac4b8 100%);
+  color: white;
 }
 
 .group-info {

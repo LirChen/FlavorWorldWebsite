@@ -374,7 +374,7 @@ router.post('/:userId/follow', async (req, res) => {
         name: follower.fullName || 'Unknown User',
         avatar: follower.avatar || null
       }
-    });
+    }, req.io);
 
     console.log('User followed successfully');
     res.json({ 
@@ -617,6 +617,82 @@ router.delete('/delete', async (req, res) => {
       success: false,
       message: 'Delete failed: ' + error.message
     });
+  }
+});
+
+// GET FOLLOWERS LIST
+router.get('/:userId/followers', async (req, res) => {
+  try {
+    if (!isMongoConnected()) {
+      return res.status(503).json({ message: 'Database not available' });
+    }
+
+    const { userId } = req.params;
+    
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ message: 'Invalid user ID' });
+    }
+
+    const user = await User.findById(userId).populate('followers', 'fullName email avatar bio');
+    
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const followers = user.followers || [];
+    const formattedFollowers = followers.map(follower => ({
+      _id: follower._id,
+      id: follower._id,
+      name: follower.fullName,
+      fullName: follower.fullName,
+      email: follower.email,
+      avatar: follower.avatar,
+      profileImage: follower.avatar,
+      bio: follower.bio || ''
+    }));
+
+    res.json(formattedFollowers);
+  } catch (error) {
+    console.error('Get followers error:', error);
+    res.status(500).json({ message: 'Failed to get followers' });
+  }
+});
+
+// GET FOLLOWING LIST
+router.get('/:userId/following', async (req, res) => {
+  try {
+    if (!isMongoConnected()) {
+      return res.status(503).json({ message: 'Database not available' });
+    }
+
+    const { userId } = req.params;
+    
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ message: 'Invalid user ID' });
+    }
+
+    const user = await User.findById(userId).populate('following', 'fullName email avatar bio');
+    
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const following = user.following || [];
+    const formattedFollowing = following.map(user => ({
+      _id: user._id,
+      id: user._id,
+      name: user.fullName,
+      fullName: user.fullName,
+      email: user.email,
+      avatar: user.avatar,
+      profileImage: user.avatar,
+      bio: user.bio || ''
+    }));
+
+    res.json(formattedFollowing);
+  } catch (error) {
+    console.error('Get following error:', error);
+    res.status(500).json({ message: 'Failed to get following' });
   }
 });
 

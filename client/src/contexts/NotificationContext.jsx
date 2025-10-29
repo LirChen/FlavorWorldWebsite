@@ -1,5 +1,6 @@
 import React, { createContext, useState, useContext, useCallback, useEffect } from 'react';
 import { notificationService } from '../services/notificationService';
+import { chatService } from '../services/chatServices';
 
 const NotificationContext = createContext();
 
@@ -34,6 +35,10 @@ export const NotificationProvider = ({ children, currentUser }) => {
     }
   }, [currentUser]);
 
+  const incrementUnreadCount = useCallback(() => {
+    setUnreadCount(prev => prev + 1);
+  }, []);
+
   const decrementUnreadCount = useCallback(() => {
     setUnreadCount(prev => Math.max(0, prev - 1));
   }, []);
@@ -41,6 +46,25 @@ export const NotificationProvider = ({ children, currentUser }) => {
   const resetUnreadCount = useCallback(() => {
     setUnreadCount(0);
   }, []);
+
+  // Listen for socket events
+  useEffect(() => {
+    const socket = chatService.getSocket();
+    
+    if (socket) {
+      // Listen for new notifications
+      const handleNewNotification = () => {
+        console.log('New notification received via socket');
+        incrementUnreadCount();
+      };
+
+      socket.on('new_notification', handleNewNotification);
+      
+      return () => {
+        socket.off('new_notification', handleNewNotification);
+      };
+    }
+  }, [incrementUnreadCount]);
 
   useEffect(() => {
     if (currentUser) {
@@ -55,6 +79,7 @@ export const NotificationProvider = ({ children, currentUser }) => {
       value={{ 
         unreadCount, 
         loadUnreadCount, 
+        incrementUnreadCount,
         decrementUnreadCount,
         resetUnreadCount 
       }}

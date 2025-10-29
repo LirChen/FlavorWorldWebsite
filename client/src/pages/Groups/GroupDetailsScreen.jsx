@@ -57,12 +57,15 @@ const GroupDetailsScreen = () => {
       if (groupResult.success) {
         setGroup(groupResult.data);
       } else {
+        // Try fallback without showing error yet
         const fallbackResult = await groupService.getGroup(groupId);
         
         if (fallbackResult.success) {
           setGroup(fallbackResult.data);
         } else {
-          alert(fallbackResult.message || 'Failed to load group');
+          // Only log error, don't show alert for network issues
+          console.error('Failed to load group:', fallbackResult.message);
+          setLoading(false);
           return;
         }
       }
@@ -71,7 +74,7 @@ const GroupDetailsScreen = () => {
 
     } catch (error) {
       console.error('Load group data error:', error);
-      alert('Failed to load group data');
+      // Don't show alert for network errors
     } finally {
       setLoading(false);
     }
@@ -211,8 +214,13 @@ const GroupDetailsScreen = () => {
 
 ////
 
-  const handlePostCreated = useCallback(() => {
+  const handlePostCreated = useCallback((newPost) => {
     setShowCreateModal(false);
+    // Add the new post to the top of the list immediately for instant feedback
+    if (newPost) {
+      setGroupPosts(prevPosts => [newPost, ...prevPosts]);
+    }
+    // Also reload to ensure we have the latest data
     loadGroupPosts();
   }, [loadGroupPosts]);
 

@@ -37,6 +37,11 @@
   flex-shrink: 0;
 }
 
+.back-btn svg {
+  width: 24px;
+  height: 24px;
+}
+
 .back-btn:hover {
   background: var(--primary);
   color: white;
