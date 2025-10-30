@@ -871,7 +871,8 @@ describe('Users Routes - Unit Tests', () => {
       const response = await request(app)
         .delete('/api/users/delete')
         .send({
-          userId: user3._id.toString()
+          userId: user3._id.toString(),
+          password: 'Test1234!' // Use the correct default password from createTestUser
         });
 
       expect(response.status).toBe(200);
@@ -886,18 +887,46 @@ describe('Users Routes - Unit Tests', () => {
     it('should return 400 when userId is missing', async () => {
       const response = await request(app)
         .delete('/api/users/delete')
-        .send({});
+        .send({
+          password: 'Test1234!'
+        });
 
       expect(response.status).toBe(400);
       expect(response.body.success).toBe(false);
       expect(response.body.message).toBe('userId is required');
     });
 
+    it('should return 400 when password is missing', async () => {
+      const response = await request(app)
+        .delete('/api/users/delete')
+        .send({
+          userId: user1._id.toString()
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body.success).toBe(false);
+      expect(response.body.message).toBe('Password is required to delete account');
+    });
+
+    it('should return 401 for incorrect password', async () => {
+      const response = await request(app)
+        .delete('/api/users/delete')
+        .send({
+          userId: user1._id.toString(),
+          password: 'wrongpassword'
+        });
+
+      expect(response.status).toBe(401);
+      expect(response.body.success).toBe(false);
+      expect(response.body.message).toBe('Incorrect password. Account deletion cancelled.');
+    });
+
     it('should return 400 for invalid userId', async () => {
       const response = await request(app)
         .delete('/api/users/delete')
         .send({
-          userId: 'invalid-id'
+          userId: 'invalid-id',
+          password: 'Test1234!'
         });
 
       expect(response.status).toBe(400);
@@ -910,7 +939,8 @@ describe('Users Routes - Unit Tests', () => {
       const response = await request(app)
         .delete('/api/users/delete')
         .send({
-          userId: nonExistentId.toString()
+          userId: nonExistentId.toString(),
+          password: 'Test1234!'
         });
 
       expect(response.status).toBe(404);
@@ -924,7 +954,8 @@ describe('Users Routes - Unit Tests', () => {
       const response = await request(app)
         .delete('/api/users/delete')
         .send({
-          userId: user1._id.toString()
+          userId: user1._id.toString(),
+          password: 'Test1234!'
         });
 
       expect(response.status).toBe(500);
