@@ -427,9 +427,9 @@ This project is licensed under the MIT License.
 
 ## 👥 Authors
 
-- **[Moriya Shalom](https://github.com/moriyash)** - Full-stack development with React & Node.js
 - **[Lir Chen](https://github.com/LirChen)** - Full-stack development with React & Node.js
-- **Repository**: [moriyash/FlavorWorldWebsite](https://github.com/moriyash/FlavorWorldWebsite)
+- **[Moriya Shalom](https://github.com/moriyash)** - Full-stack development with React & Node.js
+- **Repository**: [LirChen/FlavorWorldWebsite](https://github.com/LirChen/FlavorWorldWebsite.git)
 
 ---
 
