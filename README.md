@@ -25,18 +25,24 @@ A modern full-stack social platform for food enthusiasts to share recipes, join 
 - **Group Posts**: Share recipes within groups with approval workflows
 - **Admin Controls**: Manage members, approve posts, and configure group settings
 - **Member Roles**: Owner, Admin, and Member roles with different permissions
+- **Role Management**: Promote members to admin or demote them
+- **Remove Members**: Admins can remove members from groups
 - **Join Requests**: Admin approval system for private groups
+- **Pending Requests**: View and manage join requests with user details
 - **Group Settings**: Control post permissions and approval requirements
+- **Leave Group**: Members can leave groups, with admin transfer on admin departure
 
 ### 💬 Real-time Chat
-- **Private Messaging**: One-on-one conversations with Socket.IO
+- **Private Messaging**: One-on-one conversations with Socket.IO and HTTP fallback
 - **Group Chat**: Community discussions within groups
+- **Create Group Chats**: Build chat groups with multiple participants
+- **Add/Remove Participants**: Manage chat membership (admin only)
+- **Admin Transfer**: Automatic admin transfer when admin leaves
 - **Live Updates**: Real-time message delivery and notifications
-- **Read Receipts**: Track message status
-- **Chat History**: Persistent message storage
-- **Recipe Sharing**: Share recipes directly in chats with interactive preview cards
-- **Media Preview**: Recipe cards display images/videos, title, description, and cooking details
-- **One-Click Navigation**: Click recipe cards to open full post with like, comment, and save options
+- **Read Receipts**: Track message status and unread counts
+- **Chat History**: Persistent message storage with pagination
+- **Typing Indicators**: See when others are typing
+- **Recipe Sharing**: Share recipes directly to chats with rich previews
 
 ### 🔔 Notifications System
 - **Real-time Alerts**: Instant notifications for likes, comments, and follows
@@ -45,24 +51,34 @@ A modern full-stack social platform for food enthusiasts to share recipes, join 
 - **Notification Center**: View and manage all notifications
 
 ### 🔍 Search & Discovery
-- **User Search**: Find other chefs by name
+- **User Search**: Find other chefs by name or email
 - **Recipe Search**: Browse recipes by category, cuisine, or dietary preference
 - **Group Discovery**: Find and join cooking communities
 - **Suggested Content**: Algorithm-based chef recommendations
+- **Following Users in Chat**: Quick access to people you follow when starting new chats
+- **Chat User Discovery**: See following users by default in chat search
 
 ### 📱 Social Features
-- **Like System**: Show appreciation for recipes
+- **Like System**: Show appreciation for recipes with optimistic updates for instant feedback
 - **Comments**: Engage with recipe creators
-- **Share to Chats**: Share recipes to private chats and group chats with rich preview cards
+- **Share Posts**: Share recipes to private chats and group chats
+- **Recipe Share Previews**: Shared recipes display with rich formatting
 - **Feed Algorithm**: Personalized home feed with recipes from followed users and joined groups
-- **Saved Recipes**: Bookmark your favorite recipes for later
-- **Recipe Preview Cards**: Beautiful recipe cards with images/videos, title, description, and metadata in chat messages
+- **Saved Recipes**: Bookmark your favorite recipes with optimized state management
+- **Follow System**: Build your network and see follower/following lists
+- **Remove Followers**: Manage your followers list
+- **Performance Optimizations**: Saved posts state loads once and passes to components for instant display
+- **Optimistic UI Updates**: Like buttons respond instantly without waiting for server
 
 ### 🎨 Modern UI/UX
 - **Responsive Design**: Mobile-first approach, works on all devices
 - **Modern Gradients**: Beautiful glass-morphism effects and shadows
 - **Smooth Animations**: Polished transitions and hover effects
 - **Intuitive Navigation**: Tab-based navigation with sidebar access
+- **Optimized Login Screen**: Wider hero section with adjustable spacing
+- **Consistent Chat UI**: Unified styling across private and group chat creation
+- **Clean Badges**: Single, combined badges for user relationships (Following • Chatted)
+- **Professional Buttons**: Subtle, modern button designs throughout
 - **Dark Mode Ready**: CSS custom properties for easy theming
 
 ## 🏗️ Architecture
@@ -243,15 +259,18 @@ FlavorWorldWebsite/
 
 ### Groups (`/api/groups`)
 - `GET /` - Get all groups
+- `GET /search` - Search groups
 - `POST /` - Create group
 - `GET /:id` - Get group details
 - `PUT /:id` - Update group
 - `DELETE /:id` - Delete group
-- `POST /:id/join` - Request to join
-- `POST /:id/leave` - Leave group
-- `GET /:id/members` - Get members
-- `POST /:id/members/:userId/role` - Update member role
-- `DELETE /:id/members/:userId` - Remove member
+- `POST /:groupId/join` - Request to join group
+- `DELETE /:groupId/join` - Cancel join request
+- `DELETE /:groupId/leave/:userId` - Leave group
+- `PUT /:id/requests/:userId` - Approve/reject join request
+- `GET /:groupId/members` - Get members with details
+- `PUT /:groupId/members/:memberUserId/role` - Update member role
+- `DELETE /:groupId/members/:memberUserId` - Remove member
 
 ### Group Posts (`/api/groups/:groupId/posts`)
 - `GET /` - Get group posts
@@ -264,19 +283,34 @@ FlavorWorldWebsite/
 ### Users (`/api/users`)
 - `GET /search` - Search users
 - `GET /suggested` - Get suggested chefs
-- `GET /:id` - Get user profile
-- `PUT /:id` - Update profile
-- `POST /:id/follow` - Follow user
-- `DELETE /:id/follow` - Unfollow user
-- `GET /:id/followers` - Get followers
-- `GET /:id/following` - Get following
-- `GET /:id/recipes` - Get user's recipes
+- `GET /profile/:userId` - Get user profile
+- `PUT /profile` - Update profile
+- `PUT /change-password` - Change password
+- `POST /upload-avatar` - Upload avatar
+- `POST /:userId/follow` - Follow user
+- `DELETE /:userId/follow` - Unfollow user
+- `GET /:userId/follow-status/:viewerId` - Get follow status
+- `DELETE /delete` - Delete user account (cascade deletion)
 
 ### Chats (`/api/chats`)
-- `GET /` - Get all chats
-- `POST /` - Create/get private chat
+- `GET /my` - Get all private chats
+- `POST /private` - Create/get private chat
 - `GET /:chatId/messages` - Get messages
 - `POST /:chatId/messages` - Send message
+- `PUT /:chatId/read` - Mark messages as read
+- `GET /unread-count` - Get unread message count
+
+### Group Chats (`/api/group-chats`)
+- `GET /my` - Get my group chats
+- `POST /` - Create group chat
+- `GET /:chatId` - Get group chat details
+- `PUT /:chatId` - Update group chat
+- `GET /:chatId/messages` - Get messages
+- `POST /:chatId/messages` - Send message
+- `POST /:chatId/participants` - Add participants
+- `DELETE /:chatId/participants/:userId` - Remove participant
+- `DELETE /:chatId/leave` - Leave group chat
+- `PUT /:chatId/read` - Mark as read
 
 ### Notifications (`/api/notifications`)
 - `GET /` - Get all notifications
@@ -302,13 +336,22 @@ FlavorWorldWebsite/
 
 ## 🔒 Security Features
 
-- **JWT Authentication**: Secure token-based auth
-- **Password Hashing**: bcrypt with salt rounds
+- **JWT Authentication**: Secure token-based auth with 7-day expiration
+- **Password Hashing**: bcrypt with sufficient salt rounds (10+)
 - **Input Validation**: Server-side validation for all inputs
 - **File Upload Security**: MIME type validation and size limits
 - **CORS Protection**: Configured CORS policy
 - **MongoDB Injection**: Mongoose sanitization
-- **XSS Protection**: Input sanitization
+- **XSS Protection**: Input sanitization and HTML escaping
+- **Cascade Deletion**: Comprehensive data cleanup on account deletion
+  - Removes all user notifications (sent and received)
+  - Deletes private chats and all messages
+  - Handles group memberships (transfers admin or removes)
+  - Cleans up group chat participation
+  - Removes from followers/following relationships
+  - Deletes user recipes and group posts
+- **Password Validation**: Strong password requirements
+- **Email Verification**: Code-based password reset system
 
 ## 📱 Responsive Design
 
@@ -384,35 +427,9 @@ This project is licensed under the MIT License.
 
 ## 👥 Authors
 
-- **Development Team**: Full-stack development with React & Node.js
+- **[Moriya Shalom](https://github.com/moriyash)** - Full-stack development with React & Node.js
+- **[Lir Chen](https://github.com/LirChen)** - Full-stack development with React & Node.js
 - **Repository**: [moriyash/FlavorWorldWebsite](https://github.com/moriyash/FlavorWorldWebsite)
-
-## 🎯 Roadmap
-
-### ✅ Completed
-- Full authentication system with password reset
-- Recipe creation with image/video upload
-- Community groups with admin controls
-- Real-time chat (private and group)
-- Notifications system
-- Follow/unfollow functionality
-- Like and comment system
-- Search and discovery
-- Responsive modern UI
-- Video upload with validation
-
-### 🚧 In Progress
-- Enhanced UI polish and animations
-- Performance optimizations
-- Advanced search filters
-
-### 📋 Planned
-- Recipe recommendations algorithm
-- Cooking timers and shopping lists
-- Meal planning features
-- Mobile PWA implementation
-- Recipe ratings and reviews
-- Advanced analytics dashboard
 
 ---
 
