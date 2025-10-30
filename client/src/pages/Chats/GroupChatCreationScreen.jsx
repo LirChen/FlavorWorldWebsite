@@ -321,12 +321,13 @@ const GroupChatCreationScreen = () => {
                   <div className="user-info">
                     <h4>{user.userName}</h4>
                     <div className="user-badges">
-                      {user.isFollowing && (
+                      {user.isFollowing && user.hasPrivateChat ? (
+                        <span className="badge both-badge">Following • Chatted</span>
+                      ) : user.isFollowing ? (
                         <span className="badge following-badge">Following</span>
-                      )}
-                      {user.hasPrivateChat && (
+                      ) : user.hasPrivateChat ? (
                         <span className="badge chat-badge">Chatted</span>
-                      )}
+                      ) : null}
                     </div>
                   </div>
 
