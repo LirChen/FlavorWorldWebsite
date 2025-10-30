@@ -5,6 +5,8 @@ import jwt from 'jsonwebtoken';
 import upload from '../middleware/upload.js';
 import { isMongoConnected } from '../config/database.js';
 import { createNotification } from '../utils/helpers.js';
+import GroupPost from '../models/GroupPost.js';
+import Group from '../models/Group.js';
 
 const router = express.Router();
 
@@ -590,22 +592,28 @@ router.delete('/:id/comments/:commentId', authenticateToken, async (req, res) =>
 
 router.post('/:id/save', authenticateToken, async (req, res) => {
   try {
-    const recipe = await Recipe.findById(req.params.id);
-    if (!recipe) return res.status(404).json({ message: 'Recipe not found' });
-
-    const user = await User.findById(req.user._id);
-    const savedItem = user.savedRecipes.find(item => item.recipeId.toString() === req.params.id);
+    const postId = req.params.id;
     
-    if (savedItem) {
-      return res.status(400).json({ message: 'Recipe already saved' });
+    const recipe = await Recipe.findById(postId);
+    const groupPost = recipe ? null : await GroupPost.findById(postId);
+    
+    if (!recipe && !groupPost) {
+      return res.status(404).json({ message: 'Post not found' });
     }
 
-    user.savedRecipes.push({ recipeId: req.params.id, savedAt: new Date() });
+    const user = await User.findById(req.user._id);
+    const savedItem = user.savedRecipes.find(item => item.recipeId.toString() === postId);
+    
+    if (savedItem) {
+      return res.status(400).json({ message: 'Post already saved' });
+    }
+
+    user.savedRecipes.push({ recipeId: postId, savedAt: new Date() });
     await user.save();
 
-    res.json({ message: 'Recipe saved successfully' });
+    res.json({ message: 'Post saved successfully' });
   } catch (error) {
-    console.error('Error saving recipe:', error);
+    console.error('Error saving post:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -633,41 +641,50 @@ router.get('/saved/all', authenticateToken, async (req, res) => {
 
     const recipeIds = user.savedRecipes.map(item => item.recipeId);
     
-    const recipes = await Recipe.find({
-      _id: { $in: recipeIds }
-    });
+    const recipes = await Recipe.find({ _id: { $in: recipeIds } });
+    const groupPosts = await GroupPost.find({ _id: { $in: recipeIds } });
 
     const enrichedRecipes = await Promise.all(
       recipes.map(async (recipe) => {
-        try {
-          const recipeUser = await User.findById(recipe.userId);
-          const savedItem = user.savedRecipes.find(
-            item => item.recipeId.toString() === recipe._id.toString()
-          );
-          
-          return {
-            ...recipe.toObject(),
-            userName: recipeUser ? recipeUser.fullName : 'Unknown User',
-            userAvatar: recipeUser ? recipeUser.avatar : null,
-            savedAt: savedItem ? savedItem.savedAt : new Date()
-          };
-        } catch (error) {
-          const savedItem = user.savedRecipes.find(
-            item => item.recipeId.toString() === recipe._id.toString()
-          );
-          return {
-            ...recipe.toObject(),
-            userName: 'Unknown User',
-            userAvatar: null,
-            savedAt: savedItem ? savedItem.savedAt : new Date()
-          };
-        }
+        const recipeUser = await User.findById(recipe.userId);
+        const savedItem = user.savedRecipes.find(
+          item => item.recipeId.toString() === recipe._id.toString()
+        );
+        
+        return {
+          ...recipe.toObject(),
+          userName: recipeUser?.fullName || 'Unknown User',
+          userAvatar: recipeUser?.avatar || null,
+          savedAt: savedItem?.savedAt || new Date(),
+          postSource: 'personal'
+        };
       })
     );
 
-    enrichedRecipes.sort((a, b) => new Date(b.savedAt) - new Date(a.savedAt));
+    const enrichedGroupPosts = await Promise.all(
+      groupPosts.map(async (post) => {
+        const postUser = await User.findById(post.userId);
+        const group = await Group.findById(post.groupId);
+        const savedItem = user.savedRecipes.find(
+          item => item.recipeId.toString() === post._id.toString()
+        );
+        
+        return {
+          ...post.toObject(),
+          userName: postUser?.fullName || 'Unknown User',
+          userAvatar: postUser?.avatar || null,
+          savedAt: savedItem?.savedAt || new Date(),
+          postSource: 'group',
+          groupId: post.groupId,
+          groupName: group?.name || 'Unknown Group'
+        };
+      })
+    );
 
-    res.json(enrichedRecipes);
+    const allPosts = [...enrichedRecipes, ...enrichedGroupPosts];
+    allPosts.sort((a, b) => new Date(b.savedAt) - new Date(a.savedAt));
+
+    res.json(allPosts);
   } catch (error) {
     console.error('Error fetching saved recipes:', error);
     res.status(500).json({ message: 'Server error' });
