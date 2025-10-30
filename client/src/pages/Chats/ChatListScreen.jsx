@@ -271,8 +271,6 @@ const ChatListScreen = () => {
                       uri={otherUser.userAvatar}
                       name={otherUser.userName}
                       size={50}
-                      showOnlineStatus={true}
-                      isOnline={otherUser.isOnline}
                     />
                   ) : null}
                 </div>

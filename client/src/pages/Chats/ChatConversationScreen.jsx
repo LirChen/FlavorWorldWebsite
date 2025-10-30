@@ -304,14 +304,9 @@ const ChatConversationScreen = () => {
             uri={otherUser?.userAvatar}
             name={otherUser?.userName}
             size={32}
-            showOnlineStatus={true}
-            isOnline={true}
           />
           <div className="user-details">
             <h3>{otherUser?.userName}</h3>
-            <span className="user-status">
-              {otherUserTyping ? 'typing...' : 'Active now'}
-            </span>
           </div>
         </div>
         
