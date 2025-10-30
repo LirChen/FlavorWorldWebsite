@@ -172,7 +172,7 @@ FlavorWorldWebsite/
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/moriyash/FlavorWorldWebsite.git
+   git clone https://github.com/LirChen/FlavorWorldWebsite.git
    cd FlavorWorldWebsite
    ```
 
