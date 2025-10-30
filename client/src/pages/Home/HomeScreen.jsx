@@ -676,9 +676,6 @@ const HomeScreen = () => {
                     />
                     <div className="suggestion-info">
                       <span className="suggestion-name">{user.userName}</span>
-                      <span className="suggestion-stats">
-                        {user.recipesCount || 0} recipes
-                      </span>
                     </div>
                   </div>
                 ))
