@@ -55,29 +55,29 @@
 }
 
 .create-btn {
-  padding: 10px 20px;
+  padding: 12px 24px;
   background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
   color: white;
   border: none;
-  border-radius: 24px;
-  font-size: 16px;
-  font-weight: 700;
+  border-radius: 20px;
+  font-size: 15px;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
-  min-width: 100px;
+  min-width: 90px;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 12px rgba(245, 166, 35, 0.25);
+  box-shadow: 0 2px 8px rgba(245, 166, 35, 0.2);
 }
 
 .create-btn:hover:not(:disabled) {
-  transform: translateY(-3px) scale(1.05);
-  box-shadow: 0 8px 20px rgba(245, 166, 35, 0.35);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(245, 166, 35, 0.3);
 }
 
 .create-btn:disabled {
-  background: linear-gradient(135deg, #d0d0d0 0%, #b0b0b0 100%);
+  background: #d0d0d0;
   cursor: not-allowed;
   box-shadow: none;
 }
@@ -359,11 +359,12 @@
 }
 
 .badge {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
-  padding: 3px 10px;
-  border-radius: 10px;
+  padding: 4px 10px;
+  border-radius: 12px;
   color: white;
+  white-space: nowrap;
 }
 
 .following-badge {
@@ -374,6 +375,11 @@
 .chat-badge {
   background: linear-gradient(135deg, var(--secondary) 0%, #3ac4b8 100%);
   box-shadow: 0 2px 6px rgba(78, 209, 196, 0.3);
+}
+
+.both-badge {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+  box-shadow: 0 2px 6px rgba(245, 166, 35, 0.3);
 }
 
 .selection-circle {
