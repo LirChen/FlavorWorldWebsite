@@ -81,50 +81,63 @@ class UserService {
         confirmDelete: true
       };
 
-      const endpoints = [
-        { url: '/api/auth/delete-account', method: 'delete' },
-        { url: '/api/user/delete', method: 'delete' },
-        { url: '/api/auth/delete-user', method: 'delete' }
-      ];
+      try {
+        console.log('Calling delete endpoint: /api/users/delete');
+        
+        const response = await this.api({
+          method: 'delete',
+          url: '/api/users/delete',
+          data: deleteData,
+          headers: {
+            'x-user-id': userId,
+          },
+          timeout: 15000, 
+        });
 
-      for (const endpoint of endpoints) {
-        try {
-          console.log(`Trying delete endpoint: ${endpoint.url}`);
+        if (response.data.success || response.status === 200) {
+          console.log('User account deleted successfully');
           
-          const response = await this.api({
-            method: endpoint.method,
-            url: endpoint.url,
-            data: deleteData,
-            headers: {
-              'x-user-id': userId,
-            },
-            timeout: 15000, 
-          });
-
-          if (response.data.success || response.status === 200) {
-            console.log('User account deleted successfully via:', endpoint.url);
-            
-            // Clear localStorage after account deletion
-            localStorage.removeItem('authToken');
-            localStorage.removeItem('user');
-            
-            return {
-              success: true,
-              message: 'Account deleted successfully',
-              data: response.data
-            };
-          }
-        } catch (error) {
-          if (error.response && (error.response.status === 401 || error.response.status === 403)) {
-            throw new Error(error.response.data.message || 'Authentication failed. Please check your password.');
-          }
+          // Clear localStorage after account deletion
+          localStorage.removeItem('userToken');
+          localStorage.removeItem('userData');
+          localStorage.removeItem('user');
           
-          console.log(`Delete endpoint ${endpoint.url} error:`, error.message);
-          continue;
+          return {
+            success: true,
+            message: 'Account deleted successfully',
+            data: response.data
+          };
         }
+      } catch (error) {
+        // If we get a 401 error, it means wrong password
+        if (error.response && error.response.status === 401) {
+          console.error('Password validation failed');
+          return {
+            success: false,
+            message: error.response.data.message || 'Incorrect password. Account deletion cancelled.'
+          };
+        }
+        
+        // If network error (server not running), give helpful message
+        if (!error.response && error.code === 'ERR_NETWORK') {
+          return {
+            success: false,
+            message: 'Cannot connect to server. Please make sure the server is running.'
+          };
+        }
+        
+        // Other errors
+        console.error('Delete account error:', error);
+        return {
+          success: false,
+          message: error.response?.data?.message || 'Failed to delete account. Please try again.'
+        };
       }
 
-      throw new Error('Account deletion endpoint not available. Please contact support.');
+      return {
+        success: false,
+        message: 'Failed to delete account'
+      };
       
     } catch (error) {
       return {
@@ -587,7 +600,8 @@ class UserService {
 
   // Clear all user-related data
   clearUserData() {
-    localStorage.removeItem('authToken');
+    localStorage.removeItem('userToken');
+    localStorage.removeItem('userData');
     localStorage.removeItem('user');
     
     // Clear cached profiles

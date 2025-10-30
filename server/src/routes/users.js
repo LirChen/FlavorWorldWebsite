@@ -620,12 +620,19 @@ router.delete('/delete', async (req, res) => {
   console.log('User delete endpoint called - starting cascade deletion');
   
   try {
-    const { userId } = req.body;
+    const { userId, password } = req.body;
     
     if (!userId) {
       return res.status(400).json({
         success: false,
         message: 'userId is required'
+      });
+    }
+
+    if (!password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password is required to delete account'
       });
     }
 
@@ -644,16 +651,32 @@ router.delete('/delete', async (req, res) => {
       });
     }
 
-    console.log('Starting cascade deletion for user:', user.fullName);
+    console.log('User found:', user.fullName);
+    console.log('Password provided:', password ? 'Yes' : 'No');
+    console.log('Stored password hash exists:', user.password ? 'Yes' : 'No');
 
-    // 1. Delete all notifications sent by this user
+    // Validate password before proceeding with deletion
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    console.log('Password validation result:', isPasswordValid);
+    
+    if (!isPasswordValid) {
+      console.log('Password validation failed - deletion cancelled');
+      return res.status(401).json({
+        success: false,
+        message: 'Incorrect password. Account deletion cancelled.'
+      });
+    }
+
+    console.log('Password validated successfully - Starting cascade deletion for user:', user.fullName);
+
+    // 1. Delete all notifications sent by this user (where user is the sender)
     const NotificationModel = (await import('../models/Notification.js')).default;
-    await NotificationModel.deleteMany({ senderId: userId });
-    console.log('Deleted notifications sent by user');
+    const sentNotifications = await NotificationModel.deleteMany({ fromUserId: userId });
+    console.log('Deleted', sentNotifications.deletedCount, 'notifications sent by user');
 
-    // 2. Delete all notifications received by this user
-    await NotificationModel.deleteMany({ receiverId: userId });
-    console.log('Deleted notifications received by user');
+    // 2. Delete all notifications received by this user (where user is the recipient)
+    const receivedNotifications = await NotificationModel.deleteMany({ toUserId: userId });
+    console.log('Deleted', receivedNotifications.deletedCount, 'notifications received by user');
 
     // 3. Remove user from all private chats and delete chats where user is a participant
     const PrivateChatModel = (await import('../models/PrivateChat.js')).default;
@@ -679,7 +702,7 @@ router.delete('/delete', async (req, res) => {
     });
 
     for (const group of userGroups) {
-      const isCreator = group.createdBy.toString() === userId;
+      const isCreator = group.creatorId ? group.creatorId.toString() === userId : false;
       const userMember = group.members.find(m => m.userId === userId);
       const isAdmin = userMember?.role === 'admin';
 

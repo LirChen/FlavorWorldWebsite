@@ -459,7 +459,8 @@ const GroupDetailsScreen = () => {
             </div>
 
             <div className="members-preview">
-              {group.members.slice(0, 4).map((member, index) => {
+              {/* Use membersDetails if available, otherwise fall back to members */}
+              {(group.membersDetails || group.members).slice(0, 4).map((member, index) => {
                 const memberId = member.userId || member._id || member.id;
                 const memberName = member.userName || member.name || member.fullName || 'Unknown User';
                 const memberRole = member.role || 'member';

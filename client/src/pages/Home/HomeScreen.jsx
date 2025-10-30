@@ -84,6 +84,7 @@ const HomeScreen = () => {
   const [feedType, setFeedType] = useState('personalized');
   const [suggestedUsers, setSuggestedUsers] = useState([]);
   const [trendingRecipes, setTrendingRecipes] = useState([]);
+  const [savedRecipeIds, setSavedRecipeIds] = useState([]);
   
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedMeatType, setSelectedMeatType] = useState('all');
@@ -224,6 +225,18 @@ const HomeScreen = () => {
     }
   }, []);
 
+  const loadSavedRecipes = useCallback(async () => {
+    try {
+      const result = await recipeService.getSavedRecipes();
+      if (result.success && Array.isArray(result.data)) {
+        const savedIds = result.data.map(r => r._id || r.id);
+        setSavedRecipeIds(savedIds);
+      }
+    } catch (error) {
+      console.error('Load saved recipes error:', error);
+    }
+  }, []);
+
   const loadSuggestedUsers = useCallback(async () => {
     try {
       const result = await userService.getSuggestedUsers(3);
@@ -271,13 +284,15 @@ const HomeScreen = () => {
       initializeChatService();
       loadSuggestedUsers();
       loadTrendingRecipes();
+      loadSavedRecipes();
     }
-  }, [currentUser?.id, currentUser?._id, initializeChatService, loadSuggestedUsers, loadTrendingRecipes]);
+  }, [currentUser?.id, currentUser?._id, initializeChatService, loadSuggestedUsers, loadTrendingRecipes, loadSavedRecipes]);
 
   const handleRefreshData = useCallback(async () => {
     setRefreshing(true);
     await loadPosts();
-  }, [loadPosts]);
+    await loadSavedRecipes();
+  }, [loadPosts, loadSavedRecipes]);
 
   const handleLogout = useCallback(() => {
     if (window.confirm('Are you sure you want to logout?')) {
@@ -604,6 +619,7 @@ const HomeScreen = () => {
                     onDelete={handlePostDelete}
                     onShare={() => handleShare(post)}
                     onRefreshData={handleRefreshData}
+                    savedRecipeIds={savedRecipeIds}
                   />
                 </div>
               ))}

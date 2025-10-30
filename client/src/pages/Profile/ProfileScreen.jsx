@@ -368,9 +368,20 @@ const ProfileScreen = () => {
       if (result.success) {
         alert('Your account has been permanently deleted. Thank you for using FlavorWorld.');
         setShowDeleteModal(false);
-        logout();
+        
+        // Disconnect socket connections before logout
+        try {
+          const { chatService } = await import('../../services/chatServices');
+          chatService.disconnect();
+        } catch (error) {
+          console.error('Error disconnecting chat service:', error);
+        }
+        
+        // Logout and clear all auth state
+        await logout();
+        
         // Navigate to login page after logout
-        navigate('/login');
+        navigate('/login', { replace: true });
       } else {
         alert(result.message || 'Failed to delete account. Please try again or contact support.');
       }

@@ -41,7 +41,8 @@ const PostComponent = ({
   onRefreshData, 
   navigation,
   isGroupPost = false,
-  groupId = null 
+  groupId = null,
+  savedRecipeIds = []
 }) => {
   const safePost = post || {};
   const { currentUser } = useAuth();
@@ -58,18 +59,25 @@ const PostComponent = ({
 
   const navigate = useNavigate();
 
- useEffect(() => {
-  setLocalLikes(safePost.likes || []);
-  setLocalComments(safePost.comments || []);
-  
-  const checkSaved = async () => {
-  const result = await recipeService.getSavedRecipes();
-  if (result.success && Array.isArray(result.data)) {
-    setIsSaved(result.data.some(r => (r._id || r.id) === (post._id || post.id)));
-  }
-};
-  checkSaved();
-}, [safePost.likes, safePost.comments, post._id, post.id]);
+  useEffect(() => {
+    setLocalLikes(safePost.likes || []);
+    setLocalComments(safePost.comments || []);
+    
+    // Check if this post is in the saved recipes list
+    const postId = post._id || post.id;
+    if (savedRecipeIds && savedRecipeIds.length > 0) {
+      setIsSaved(savedRecipeIds.includes(postId));
+    } else {
+      // Fallback to API call if savedRecipeIds not provided
+      const checkSaved = async () => {
+        const result = await recipeService.getSavedRecipes();
+        if (result.success && Array.isArray(result.data)) {
+          setIsSaved(result.data.some(r => (r._id || r.id) === postId));
+        }
+      };
+      checkSaved();
+    }
+  }, [safePost.likes, safePost.comments, post._id, post.id, savedRecipeIds]);
   
 
   const currentUserId = currentUser?.id || currentUser?._id;
@@ -148,9 +156,7 @@ const PostComponent = ({
         if (result.data?.likes) {
           setLocalLikes(result.data.likes);
         }
-        if (onRefreshData) {
-          onRefreshData();
-        }
+        // Don't refresh entire feed on like - optimistic update is enough
       } else {
         setLocalLikes(safePost.likes || []);
         console.error('Like failed:', result.message);
@@ -294,6 +300,11 @@ const PostComponent = ({
         setIsSaved(previousSavedState);
         console.error('Unsave failed:', result);
         alert(result.message || 'Failed to unsave recipe');
+      } else {
+        // Notify parent to refresh saved recipes list
+        if (onRefreshData) {
+          onRefreshData();
+        }
       }
     } else {
       console.log('Attempting to save...');
@@ -304,6 +315,11 @@ const PostComponent = ({
         setIsSaved(previousSavedState);
         console.error('Save failed:', result);
         alert(result.message || 'Failed to save recipe');
+      } else {
+        // Notify parent to refresh saved recipes list
+        if (onRefreshData) {
+          onRefreshData();
+        }
       }
     }
   } catch (error) {
