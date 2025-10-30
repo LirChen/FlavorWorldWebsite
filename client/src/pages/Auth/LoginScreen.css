@@ -125,19 +125,20 @@
 /* ==== Main Content Grid ==== */
 .main-content-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1.5fr 0.9fr;
   min-height: calc(100vh - 80px);
   position: relative;
   z-index: 1;
+  gap: 1rem;
 }
 
 /* ==== Hero Side (Left) ==== */
 .hero-side {
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: flex-start;
-  padding: 4rem 3rem 4rem 4rem;
+  padding: 5rem 2rem 4.5rem 6rem;
   background: rgba(255, 255, 255, 0.02);
   position: relative;
 }
@@ -146,9 +147,9 @@
   font-size: clamp(1.8rem, 4vw, 4rem);
   font-weight: 800;
   color: var(--text);
-  margin-bottom: 1.5rem;
+  margin-bottom: 3.5rem;
   line-height: 1.2;
-  margin: 0 0 1.5rem 0;
+  margin: 0 0 3.5rem 0;
 }
 
 .title-highlight {
@@ -163,7 +164,7 @@
   word-wrap: break-word;
   color: var(--text);
   line-height: 1.7;
-  margin-bottom: 3rem;
+  margin-bottom: 2rem;
   font-weight: 500;
   max-width: 90%;
 }
@@ -175,9 +176,9 @@
 /* ==== Features Showcase ==== */
 .features-showcase {
   display: grid;
-  gap: 1.5rem;
+  gap: 1.25rem;
   width: 100%;
-  max-width: 500px;
+  max-width: 550px;
 }
 
 .feature-item {
@@ -233,7 +234,7 @@
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding: 4rem 4rem 4rem 3rem;
+  padding: 5rem 4rem 5rem 2rem;
   background: rgba(255, 255, 255, 0.05);
   position: relative;
 }
@@ -241,11 +242,11 @@
 /* ==== Login Card ==== */
 .login-card {
   width: 100%;
-  max-width: 400px;
+  max-width: 380px;
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
   border-radius: 24px;
-  padding: 3rem 2.5rem;
+  padding: 2rem 2rem;
   box-shadow: var(--shadow-hover);
   border: 1px solid rgba(255, 255, 255, 0.2);
   position: relative;
@@ -259,19 +260,19 @@
 /* ==== Login Header ==== */
 .login-header {
   text-align: center;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
 }
 
 .login-logo {
-  width: 80px;
-  height: 80px;
+  width: 65px;
+  height: 65px;
   background: linear-gradient(135deg, var(--primary), var(--primary-hover));
-  border-radius: 20px;
+  border-radius: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 2.5rem;
-  margin: 0 auto 1.5rem;
+  font-size: 2rem;
+  margin: 0 auto 1rem;
   box-shadow: 0 8px 25px rgba(245, 166, 35, 0.3);
   border: 3px solid var(--white);
   transition: transform 0.3s ease;
@@ -282,26 +283,26 @@
 }
 
 .login-title {
-  font-size: 1.8rem;
+  font-size: 1.5rem;
   font-weight: 700;
   background: linear-gradient(135deg, var(--accent), #2B4F96);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  margin: 0 0 0.5rem 0;
+  margin: 0 0 0.4rem 0;
 }
 
 .login-subtitle {
   color: var(--text-light);
   margin: 0;
-  font-size: 1rem;
+  font-size: 0.9rem;
 }
 
 /* ==== Login Form ==== */
 .login-form {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1.2rem;
 }
 
 .input-group {
@@ -311,19 +312,19 @@
 
 .input-label {
   display: block;
-  font-size: 1rem;
+  font-size: 0.9rem;
   font-weight: 600;
   color: var(--text);
-  margin-bottom: 0.6rem;
+  margin-bottom: 0.5rem;
 }
 
 .input-field {
   width: 100%;
-  padding: 1rem;
+  padding: 0.85rem;
   background: var(--white);
   border: 2px solid var(--border);
   border-radius: 16px;
-  font-size: 1rem;
+  font-size: 0.95rem;
   font-weight: 500;
   color: var(--text);
   outline: none;
@@ -391,12 +392,12 @@
 /* ==== Login Button ==== */
 .login-button {
   width: 100%;
-  padding: 1.1rem;
+  padding: 0.9rem;
   background: linear-gradient(135deg, var(--primary), var(--primary-hover));
   color: var(--white);
   border: none;
   border-radius: 30px;
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -445,9 +446,9 @@
   border: none;
   cursor: pointer;
   padding: 0;
-  margin: 0.6rem 0 0 0;
+  margin: 0.4rem 0 0 0;
   text-align: center;
-  font-size: 1rem;
+  font-size: 0.9rem;
   font-weight: 600;
   color: var(--secondary);
   transition: all 0.3s ease;
@@ -480,7 +481,7 @@
   border: none;
   cursor: pointer;
   padding: 0;
-  margin-top: 2rem;
+  margin-top: 1.5rem;
   transition: all 0.3s ease;
 }
 
@@ -490,8 +491,8 @@
 
 .register-text {
   margin: 0;
-  padding: 1.2rem 0;
-  font-size: 1rem;
+  padding: 1rem 0;
+  font-size: 0.9rem;
   font-weight: 600;
   color: var(--text);
   text-align: center;
