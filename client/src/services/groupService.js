@@ -799,7 +799,8 @@ class GroupService {
     try {
       console.log('Fetching group with full member details');
       
-      const response = await this.axiosInstance.get(`/groups/${groupId}/members`, {
+      // Use the standard group endpoint which includes enriched member data
+      const response = await this.axiosInstance.get(`/groups/${groupId}`, {
         timeout: 15000
       });
 

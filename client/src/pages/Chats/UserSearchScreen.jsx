@@ -19,9 +19,48 @@ const UserSearchScreen = () => {
   
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
+  const [followingUsers, setFollowingUsers] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [loadingFollowing, setLoadingFollowing] = useState(true);
   const [creating, setCreating] = useState(false);
   const [searchTimeout, setSearchTimeout] = useState(null);
+
+  // Load following users on mount
+  useEffect(() => {
+    loadFollowingUsers();
+  }, [currentUser]);
+
+  const loadFollowingUsers = async () => {
+    try {
+      setLoadingFollowing(true);
+      const userId = currentUser?.id || currentUser?._id;
+      if (!userId) return;
+
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      const response = await fetch(`${API_BASE_URL}/api/users/${userId}/following`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('userToken')}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // Transform to match search results format
+        const formattedUsers = data.map(user => ({
+          userId: user.userId || user._id,
+          userName: user.userName || user.fullName,
+          userEmail: user.userEmail || user.email,
+          userAvatar: user.userAvatar || user.avatar,
+          userBio: user.userBio || user.bio
+        }));
+        setFollowingUsers(formattedUsers);
+      }
+    } catch (error) {
+      console.error('Load following users error:', error);
+    } finally {
+      setLoadingFollowing(false);
+    }
+  };
 
   useEffect(() => {
     if (searchQuery.trim().length >= 2) {
@@ -130,8 +169,9 @@ const UserSearchScreen = () => {
           </div>
         )}
 
-        {!loading && searchResults.length > 0 && (
+        {!loading && searchQuery.trim().length >= 2 && searchResults.length > 0 && (
           <div className="results-list">
+            <h3 className="section-title">Search Results</h3>
             {searchResults.map((user) => (
               <div
                 key={user.userId}
@@ -159,11 +199,47 @@ const UserSearchScreen = () => {
         )}
 
         {!loading && searchQuery.trim().length === 0 && (
-          <div className="empty-state">
-            <Search size={80} />
-            <h2>Search for Users</h2>
-            <p>Type at least 2 characters to start searching</p>
-          </div>
+          <>
+            {loadingFollowing ? (
+              <div className="loading-container">
+                <Loader2 className="spinner" size={40} />
+                <p>Loading following users...</p>
+              </div>
+            ) : followingUsers.length > 0 ? (
+              <div className="results-list">
+                <h3 className="section-title">People You Follow</h3>
+                <p className="section-subtitle">Start a chat with someone you follow</p>
+                {followingUsers.map((user) => (
+                  <div
+                    key={user.userId}
+                    className="user-item"
+                    onClick={() => !creating && startPrivateChat(user)}
+                  >
+                    <UserAvatar
+                      uri={user.userAvatar}
+                      name={user.userName}
+                      size={50}
+                    />
+
+                    <div className="user-info">
+                      <h3>{user.userName}</h3>
+                      {user.userBio && <p>{user.userBio}</p>}
+                    </div>
+
+                    <button className="action-btn">
+                      <MessageCircle size={20} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="empty-state">
+                <Search size={80} />
+                <h2>Search for Users</h2>
+                <p>You're not following anyone yet. Search by name or email to find people to chat with.</p>
+              </div>
+            )}
+          </>
         )}
 
         {!loading && searchQuery.trim().length >= 2 && searchResults.length === 0 && (

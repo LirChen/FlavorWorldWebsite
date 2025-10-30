@@ -50,16 +50,6 @@ const GroupChatCreationScreen = () => {
 
   const getAvailableUsersForCreation = async () => {
     try {
-      const chatsResult = await chatService.getMyChats();
-      
-      if (!chatsResult.success || !chatsResult.data || chatsResult.data.length === 0) {
-        return { 
-          success: true, 
-          data: [],
-          message: 'No private chats found'
-        };
-      }
-      
       const currentUserId = currentUser?._id || currentUser?.id || currentUser?.userId;
       
       if (!currentUserId) {
@@ -69,24 +59,66 @@ const GroupChatCreationScreen = () => {
           data: []
         };
       }
-      
+
       const availableUsers = [];
       
-      chatsResult.data.forEach((chat) => {
-        if (chat.otherUser && chat.otherUser.userId !== currentUserId) {
-          const user = {
-            userId: chat.otherUser.userId,
-            userName: chat.otherUser.userName || 'Unknown User',
-            userAvatar: chat.otherUser.userAvatar,
-            userEmail: chat.otherUser.userEmail || 'No email',
-            userBio: chat.otherUser.userBio || '',
-            hasPrivateChat: true,
-            isFollowing: false
-          };
-          
-          availableUsers.push(user);
+      // Load following users
+      try {
+        const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+        const response = await fetch(`${API_BASE_URL}/api/users/${currentUserId}/following`, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('userToken')}`
+          }
+        });
+
+        if (response.ok) {
+          const followingData = await response.json();
+          followingData.forEach(user => {
+            availableUsers.push({
+              userId: user.userId || user._id,
+              userName: user.userName || user.fullName || 'Unknown User',
+              userAvatar: user.userAvatar || user.avatar,
+              userEmail: user.userEmail || user.email || 'No email',
+              userBio: user.userBio || user.bio || '',
+              hasPrivateChat: false,
+              isFollowing: true
+            });
+          });
         }
-      });
+      } catch (error) {
+        console.error('Error loading following users:', error);
+      }
+      
+      // Load users from existing chats
+      try {
+        const chatsResult = await chatService.getMyChats();
+        
+        if (chatsResult.success && chatsResult.data && chatsResult.data.length > 0) {
+          chatsResult.data.forEach((chat) => {
+            if (chat.otherUser && chat.otherUser.userId !== currentUserId) {
+              const existingIndex = availableUsers.findIndex(u => u.userId === chat.otherUser.userId);
+              
+              if (existingIndex >= 0) {
+                // Update existing user to mark they have a chat
+                availableUsers[existingIndex].hasPrivateChat = true;
+              } else {
+                // Add new user from chat
+                availableUsers.push({
+                  userId: chat.otherUser.userId,
+                  userName: chat.otherUser.userName || 'Unknown User',
+                  userAvatar: chat.otherUser.userAvatar,
+                  userEmail: chat.otherUser.userEmail || 'No email',
+                  userBio: chat.otherUser.userBio || '',
+                  hasPrivateChat: true,
+                  isFollowing: false
+                });
+              }
+            }
+          });
+        }
+      } catch (error) {
+        console.error('Error loading chat users:', error);
+      }
       
       const uniqueUsers = availableUsers.filter((user, index, self) => 
         index === self.findIndex(u => u.userId === user.userId)
@@ -289,6 +321,9 @@ const GroupChatCreationScreen = () => {
                   <div className="user-info">
                     <h4>{user.userName}</h4>
                     <div className="user-badges">
+                      {user.isFollowing && (
+                        <span className="badge following-badge">Following</span>
+                      )}
                       {user.hasPrivateChat && (
                         <span className="badge chat-badge">Chatted</span>
                       )}
